@@ -3,7 +3,7 @@ Pool de cles OpenRouter dediees a l'Observatoire des Talents MRE (extraction
 + agents tool-calling). Distinct de OPENROUTER_API_KEY, utilisee par ailleurs
 pour le RAG juridique de Sanad AI.
 
-Round-robin sur 2 cles (OPENROUTER_API_KEY_1 / OPENROUTER_API_KEY_2), chacune
+Round-robin sur les cles OPENROUTER_API_KEY_1 a OPENROUTER_API_KEY_4, chacune
 associee au nom de sa variable d'environnement pour pouvoir identifier dans
 les logs laquelle est en faute en cas de 401/429.
 """
@@ -21,6 +21,8 @@ def _load_pool() -> List[Tuple[str, str]]:
     candidates = [
         ("OPENROUTER_API_KEY_1", settings.OPENROUTER_API_KEY_1),
         ("OPENROUTER_API_KEY_2", settings.OPENROUTER_API_KEY_2),
+        ("OPENROUTER_API_KEY_3", settings.OPENROUTER_API_KEY_3),
+        ("OPENROUTER_API_KEY_4", settings.OPENROUTER_API_KEY_4),
     ]
     seen = set()
     pool = []

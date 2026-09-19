@@ -11,13 +11,20 @@ from .openrouter_key_pool import get_next_openrouter_key_with_name, pool_size
 
 logger = logging.getLogger("sanad.ai")
 
+
+class TalentExtractionUnavailable(Exception):
+    """Le fournisseur LLM est indisponible : le candidat doit être réessayé."""
+
 VALID_DOMAINS = [
     "tech", "health", "education", "agriculture", "industry",
     "finance", "creative", "social", "other",
 ]
 
 MAX_CONTENT_CHARS = 2200
-MAX_COMPLETION_TOKENS = 300
+# Certains modeles gratuits reserves par le routeur imposent des jetons de
+# raisonnement avant la reponse. 700 laisse une marge pour ce raisonnement et
+# pour l'objet JSON final (court) sans tronquer la sortie.
+MAX_COMPLETION_TOKENS = 700
 
 SYSTEM_PROMPT = f"""Analyse cet extrait (article/bio) et determine s'il decrit UN SEUL talent \
 marocain individuel (personne precise, marocaine de nationalite/origine : entrepreneur, \
@@ -145,9 +152,30 @@ def _call_openrouter_with_retry(combined_text: str) -> Optional[str]:
                     "temperature": 0.1,
                     "max_tokens": MAX_COMPLETION_TOKENS,
                     "response_format": {"type": "json_object"},
+                    # Certains modeles gratuits imposent le raisonnement et
+                    # refusent ``effort: none``. On le laisse donc actif,
+                    # mais on ne le retourne pas au client ; le budget de
+                    # sortie ci-dessus reserve de la place au JSON final.
+                    "reasoning": {"exclude": True},
+                    # Le routeur gratuit peut sinon envoyer la requete a un
+                    # fournisseur qui ignore ``response_format``. On exige
+                    # donc explicitement le support de tous les parametres
+                    # envoyes, en particulier le mode JSON.
+                    "provider": {"require_parameters": True},
                 },
                 timeout=30.0,
             )
+            # Ces erreurs désignent la requête (endpoint, modèle ou paramètres),
+            # et non une clé particulière. Les répéter sur toutes les clés du
+            # pool ne peut pas réussir et masque le message utile du fournisseur.
+            if response.status_code in (400, 404, 422):
+                logger.error(
+                    "Requête OpenRouter non exécutable (HTTP %s, modèle '%s') : %s",
+                    response.status_code,
+                    model,
+                    response.text[:500],
+                )
+                raise RuntimeError(f"OpenRouter HTTP {response.status_code}")
             if response.status_code in (401, 429):
                 logger.warning("OpenRouter %s avec cle '%s' -- tentative %s/%s",
                                 response.status_code, env_name, attempt + 1, pool_size())
@@ -184,28 +212,29 @@ def extract_talent_profile(
 
     try:
         raw = _call_openrouter_with_retry(combined)
-    except Exception:
+    except Exception as exc:
         logger.warning("Extraction abandonnee pour '%s': toutes les cles OpenRouter ont echoue.", title[:80])
-        return None
+        raise TalentExtractionUnavailable from exc
 
     # Le modele a repondu 200 OK mais sans contenu exploitable (voir
     # docstring de _call_openrouter_with_retry) -- traite comme un rejet
     # normal plutot que de laisser une AttributeError remonter.
     if not raw or not raw.strip():
         logger.info("Extraction ignoree pour '%s' : reponse vide du modele.", title[:80])
-        return None
+        raise TalentExtractionUnavailable("Réponse vide du fournisseur LLM")
 
     try:
         data = _extract_first_json_object(raw)
     except json.JSONDecodeError:
         logger.warning("Reponse JSON invalide de l'extracteur LLM: %s", raw[:200])
-        return None
+        raise TalentExtractionUnavailable("Réponse JSON invalide du fournisseur LLM")
 
     logger.debug("Extraction LLM pour '%s' -> %s", title[:80], data)
 
     if not data.get("is_talent"):
         return None
-    if float(data.get("confidence") or 0) < 0.6:
+    confidence = float(data.get("confidence") or 0)
+    if confidence < 0.4:
         return None
 
     name = (data.get("name") or "").strip()
@@ -245,6 +274,7 @@ def extract_talent_profile(
 
     return {
         "title": name,
+        "confidence_score": round(confidence * 100),
         "sector": sector,
         "country": country,
         "expertise_tags": ", ".join(str(t).strip() for t in tags if str(t).strip()),

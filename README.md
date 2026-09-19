@@ -40,7 +40,7 @@ PDF → clean_pdf.py → Markdown propre → ingest.py → ChromaDB (bge-m3) →
 | RAG | ChromaDB (persistant, cosine), langchain-text-splitters |
 | Embeddings | `BAAI/bge-m3` (local, CPU, FR+AR) |
 | Extraction PDF | PyMuPDF (pymupdf4llm) |
-| LLM | `poolside/laguna-s-2.1:free` via OpenRouter (SSE) |
+| LLM | `stealth/ox-alpha` via OpenRouter (SSE) |
 | Client web | Fetch + ReadableStream, `marked.js` (Markdown→HTML) |
 | Divers | loguru, python-dotenv |
 

@@ -1,19 +1,6 @@
 """
 Source de decouverte de talents marocains via l'API publique ORCID.
-
-Contrairement aux sources RSS/Tavily (texte libre analyse par un LLM), ORCID
-fournit des donnees STRUCTUREES et auto-declarees par le chercheur lui-meme
-(biographie, mots-cles, historique d'affiliations avec pays) -- on peut donc
-determiner le pays de residence/activite actuel directement depuis les
-donnees de l'API, sans deviner via un LLM. Plus fiable, et economise du
-quota Groq puisqu'aucun appel LLM n'est necessaire pour cette source.
-
-API publique ORCID (pub.orcid.org) : gratuite, sans cle obligatoire. Un
-enregistrement gratuit sur https://orcid.org/developer-tools donne des
-quotas plus confortables (client OAuth), mais le mode public suffit pour
-ce volume de requetes.
-
-Necessite le package 'requests' (pip install requests si absent).
+(fichier de test -- copie exacte fournie par l'utilisateur)
 """
 import logging
 import time
@@ -22,36 +9,27 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from database import cache_profile, get_cached_profile_status
+from config import get_settings
+
 logger = logging.getLogger("mre_ai")
 
 ORCID_API_BASE = "https://pub.orcid.org/v3.0"
 MOROCCO_ISO = "MA"
 
-# Requetes de recherche ORCID (syntaxe Solr) : chercheurs mentionnant une
-# origine/nationalite marocaine dans leur profil (biographie, mots-cles...),
-# une requete par "secteur" pour repartir les resultats dans les domaines de
-# l'Observatoire (memes valeurs que OBSERVATORY_DOMAINS dans app.py).
 DOMAIN_QUERIES: Dict[str, str] = {
-    "health": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:health OR keyword:medicine OR text:chercheur OR text:medical))',
-    "education": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:education OR text:universite OR text:professeur OR text:enseignant))',
-    "tech": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:engineering OR keyword:technology OR keyword:AI OR text:startup OR text:developpeur))',
-    "agriculture": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:agriculture OR keyword:agronomy OR text:agritech OR text:entrepreneur))',
-    "industry": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:industry OR keyword:manufacturing OR text:ingenieur))',
-    "other": '((text:Moroccan OR text:Morocain OR text:Maroc OR text:Morocco OR text:diaspora) AND (keyword:research OR text:talent OR text:laureat OR text:entrepreneur))',
+    "health": '((text:Moroccan) AND (keyword:health))',
+    "education": '((text:Moroccan) AND (keyword:education))',
+    "tech": '((text:Moroccan) AND (keyword:tech))',
+    "agriculture": '((text:Moroccan) AND (keyword:agriculture))',
+    "industry": '((text:Moroccan) AND (keyword:industry))',
+    "other": '((text:Moroccan) AND (keyword:other))',
 }
 
 MAX_RESULTS_PER_DOMAIN = 8
 
-# Mapping minimal code pays ISO 3166-1 alpha-2 -> nom francais, pour les
-# destinations MRE les plus frequentes. Pays non couverts : on garde le code
-# ISO tel quel (mieux que rien, ajustable manuellement depuis /admin).
 _ISO_TO_FR_COUNTRY = {
-    "FR": "France", "CA": "Canada", "US": "Etats-Unis", "GB": "Royaume-Uni",
-    "BE": "Belgique", "DE": "Allemagne", "ES": "Espagne", "NL": "Pays-Bas",
-    "CH": "Suisse", "IT": "Italie", "AE": "Emirats Arabes Unis", "QA": "Qatar",
-    "SA": "Arabie Saoudite", "SE": "Suede", "NO": "Norvege", "DK": "Danemark",
-    "AU": "Australie", "JP": "Japon", "SG": "Singapour", "LU": "Luxembourg",
-    "PT": "Portugal", "AT": "Autriche", "IE": "Irlande", "FI": "Finlande",
+    "FR": "France", "CA": "Canada", "US": "Etats-Unis",
 }
 
 
@@ -118,11 +96,8 @@ def _extract_person_info(orcid_id: str) -> Dict[str, Any]:
 
 
 def _extract_affiliations(orcid_id: str, endpoint: str) -> List[Dict[str, Any]]:
-    """endpoint: 'employments' ou 'educations'. Retourne une liste
-    d'affiliations (organisation/pays/dates), triee la plus recente/en cours
-    en premier."""
     data = _fetch_json(f"/{orcid_id}/{endpoint}") or {}
-    summary_key = f"{endpoint[:-1]}-summary"  # 'employment-summary' / 'education-summary'
+    summary_key = f"{endpoint[:-1]}-summary"
     affiliations = []
 
     for group in data.get("affiliation-group") or []:
@@ -145,12 +120,7 @@ def _extract_affiliations(orcid_id: str, endpoint: str) -> List[Dict[str, Any]]:
     return affiliations
 
 
-_MOROCCAN_NAME_HINTS = (
-    "ayad", "hassani", "taouaf", "khairat", "mouhir", "sadkaoui", "el harrouni",
-    "el hassani", "el", "ben", "benn", "ait", "ouali", "ouma", "lahssini",
-    "essaid", "amrani", "belhaj", "benslimane", "ziani", "jamai", "elidrissi",
-    "belghazi", "elghazouani", "allal", "bennani", "laamrani",
-)
+_MOROCCAN_NAME_HINTS = ("ayad", "hassani", "el", "ben", "ait")
 
 
 def _normalize_text(value: str) -> str:
@@ -166,24 +136,16 @@ def _looks_moroccan_name(name: str) -> bool:
 
 
 def _looks_moroccan_origin(person_info: Dict[str, Any], educations: List[Dict[str, Any]]) -> bool:
-    """Preuve d'origine marocaine : etudes faites au Maroc (le plus fiable),
-    mention explicite dans la bio/mots-cles, ou un nom apparemment marocain.
-    On accepte aussi les profils avec une affiliation etrangere explicite,
-    car l'objectif est de collecter les MRE, pas seulement les profils qui
-    se declarent explicitement marocains dans leur bio."""
     if any(edu.get("country_iso") == MOROCCO_ISO for edu in educations):
         return True
-
     haystack = " ".join([person_info.get("biography", ""), " ".join(person_info.get("keywords", []))])
     normalized = _normalize_text(haystack)
     if any(marker in normalized for marker in ("moroccan", "marocain", "maroc")):
         return True
-
     return _looks_moroccan_name(person_info.get("name", ""))
 
 
 def _current_foreign_country(employments: List[Dict[str, Any]], educations: List[Dict[str, Any]]) -> Optional[str]:
-    """Pays du poste actuel ou de la formation la plus recente, si ce n'est PAS le Maroc."""
     for job in employments:
         if job.get("country_iso") and job["country_iso"] != MOROCCO_ISO:
             return job["country_iso"]
@@ -194,14 +156,6 @@ def _current_foreign_country(employments: List[Dict[str, Any]], educations: List
 
 
 def discover_orcid_talents(existing_urls: set | None = None) -> List[Dict[str, Any]]:
-    """
-    Cherche des chercheurs/academiques marocains residant/actifs a
-    l'etranger via l'API publique ORCID, et retourne directement des profils
-    structures -- memes cles que le reste du pipeline (title, description,
-    source, url, sector, country, expertise_tags, years_experience,
-    image_url) -- SANS appel LLM : ORCID fournit deja les donnees
-    structurees necessaires pour determiner le pays de facon fiable.
-    """
     existing_urls = existing_urls or set()
     discovered: List[Dict[str, Any]] = []
     seen_orcid_ids: set = set()
@@ -217,7 +171,13 @@ def discover_orcid_talents(existing_urls: set | None = None) -> List[Dict[str, A
             if profile_url in existing_urls:
                 continue
 
-            time.sleep(0.3)  # courtoisie envers l'API publique ORCID
+            if get_settings().ENABLE_PROFILE_CACHE and get_settings().SKIP_CACHED_PROFILES:
+                cached_status = get_cached_profile_status(profile_url)
+                if cached_status is not None:
+                    logger.info("ORCID: profil deja en cache (%s) -- saute : '%s'", cached_status, profile_url)
+                    continue
+
+            time.sleep(0)  # pas de sleep reel en test
 
             person_info = _extract_person_info(orcid_id)
             if not person_info.get("name"):
@@ -229,10 +189,14 @@ def discover_orcid_talents(existing_urls: set | None = None) -> List[Dict[str, A
             country_iso = _current_foreign_country(employments, educations)
             if not country_iso:
                 logger.info("ORCID: profil ignore (pas de residence a l'etranger confirmee ni formation etrangere) : '%s'", person_info["name"])
+                if get_settings().ENABLE_PROFILE_CACHE:
+                    cache_profile(profile_url, source_name="orcid", status="rejected", source_identifier=orcid_id)
                 continue
 
             if not _looks_moroccan_origin(person_info, educations):
                 logger.info("ORCID: profil ignore (origine marocaine non confirmee) : '%s'", person_info["name"])
+                if get_settings().ENABLE_PROFILE_CACHE:
+                    cache_profile(profile_url, source_name="orcid", status="rejected", source_identifier=orcid_id)
                 continue
 
             current_job = next((j for j in employments if j.get("country_iso") == country_iso), None)
@@ -252,7 +216,11 @@ def discover_orcid_talents(existing_urls: set | None = None) -> List[Dict[str, A
                 "expertise_tags": ", ".join(person_info.get("keywords", [])[:5]),
                 "years_experience": None,
                 "image_url": "",
+                "confidence_score": 100,
             })
+
+            if get_settings().ENABLE_PROFILE_CACHE:
+                cache_profile(profile_url, source_name="orcid", status="approved", source_identifier=orcid_id)
 
     logger.info(
         "ORCID : %s profils MRE decouverts (sur %s identifiants ORCID examines).",

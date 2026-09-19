@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard admin — MRE AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
@@ -174,8 +171,11 @@ tr.is-hidden{display:none;}
       <div><div class="sidebar-logo-title">MRE AI</div><div class="sidebar-logo-sub">Intelligence au service du pays</div></div>
     </div>
     <a href="{{ url_for('admin_dashboard') }}" class="nav-item active"><span class="ic">▦</span> Dashboard</a>
+    <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">⌂</span> Accueil</a>
+    <a href="{{ url_for('opportunities') }}" class="nav-item"><span class="ic">◈</span> Opportunités</a>
+    <a href="{{ url_for('chat_page') }}" class="nav-item"><span class="ic">✦</span> Assistant IA</a>
     <a href="{{ url_for('observatory') }}" class="nav-item"><span class="ic">👥</span> Observatoire</a>
-    <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">🌐</span> Voir le site</a>
+    <a href="{{ url_for('home') }}#about" class="nav-item"><span class="ic">i</span> À propos</a>
     <div class="sidebar-bottom">
       <a href="{{ url_for('logout') }}" class="nav-item"><span class="ic">⏻</span> Déconnexion</a>
     </div>
@@ -261,6 +261,17 @@ tr.is-hidden{display:none;}
             <li class="activity-item">
               <div class="activity-dot"></div>
               <div>
+                <div class="activity-text">Indexer les opportunités depuis data/investissement</div>
+                <div class="activity-time">
+                  <form method="POST" action="{{ url_for('ingest_investment_admin') }}" id="ingestForm">
+                    <button type="submit" class="action-btn" id="ingestBtn">Lancer l'ingestion</button>
+                  </form>
+                </div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
                 <div class="activity-text">{{ stats.inactive_posts }} profils masqués</div>
                 <div class="activity-time">Gérez la visibilité publique depuis la liste ci-dessous.</div>
               </div>
@@ -337,8 +348,8 @@ tr.is-hidden{display:none;}
             </div>
             <select class="tt-select" id="ttStatus">
               <option value="">Tous les statuts</option>
-              <option value="active">Visible</option>
-              <option value="inactive">Masqué</option>
+              <option value="approved">Validé</option>
+              <option value="masked">Profil masqué</option>
             </select>
             <select class="tt-select" id="ttOrigin">
               <option value="">Toutes origines</option>
@@ -366,7 +377,7 @@ tr.is-hidden{display:none;}
                   data-name="{{ post.title|lower }}"
                   data-sector="{{ post.sector }}"
                   data-xp="{{ post.years_experience if post.years_experience is not none else -1 }}"
-                  data-status="{{ 'active' if post.is_active else 'inactive' }}"
+                  data-status="{{ post.review_status }}"
                   data-origin="{{ 'auto' if post.auto_discovered else 'manual' }}"
                   data-search="{{ post.title|lower }} {{ post.country|lower if post.country else '' }} {{ post.expertise_tags|lower if post.expertise_tags else '' }}"
                 >
@@ -385,12 +396,19 @@ tr.is-hidden{display:none;}
                   </td>
                   <td><span class="sector-pill">{{ post.sector_label() }}</span></td>
                   <td>{{ post.years_experience if post.years_experience is not none else '—' }}</td>
-                  <td><span class="status-pill {{ 'active' if post.is_active else 'inactive' }}">{{ 'Visible' if post.is_active else 'Masqué' }}</span></td>
+                  <td>
+                    <span class="status-pill {{ 'active' if post.review_status == 'approved' else 'inactive' }}">
+                      {{ 'Validé' if post.review_status == 'approved' else ('Profil masqué' if post.review_status == 'masked' else post.review_status|capitalize) }}
+                    </span>
+                    {% if post.confidence_score is not none %}<small>{{ post.confidence_score }}/100</small>{% endif %}
+                  </td>
                   <td>
                     <div class="row-actions">
+                      {% if post.review_status in ['approved', 'masked'] %}
                       <form method="POST" action="{{ url_for('toggle_post', post_id=post.id) }}">
-                        <button type="submit" class="action-btn">{{ 'Masquer' if post.is_active else 'Afficher' }}</button>
+                        <button type="submit" class="action-btn">{{ 'Masquer' if post.review_status == 'approved' else 'Valider' }}</button>
                       </form>
+                      {% endif %}
                       <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" onsubmit="return confirm('Supprimer ce profil ?');">
                         <button type="submit" class="action-btn danger">Supprimer</button>
                       </form>
@@ -567,7 +585,8 @@ tr.is-hidden{display:none;}
         var name = row.querySelector('.name-cell span') ? row.querySelector('.name-cell span').textContent.trim() : '';
         var sector = row.querySelector('.sector-pill') ? row.querySelector('.sector-pill').textContent.trim() : '';
         var xp = row.dataset.xp === '-1' ? '' : row.dataset.xp;
-        var status = row.dataset.status === 'active' ? 'Visible' : 'Masqué';
+        var status = row.dataset.status === 'approved' ? 'Validé' :
+          (row.dataset.status === 'masked' ? 'Profil masqué' : row.dataset.status);
         var origin = row.dataset.origin === 'auto' ? 'Auto-découvert' : 'Manuel';
         return [name, sector, xp, status, origin].map(csvEscape).join(',');
       });
@@ -593,6 +612,14 @@ if (syncForm){
   syncForm.addEventListener('submit', function(){
     var btn = document.getElementById('syncBtn');
     btn.textContent = 'Synchronisation…';
+    btn.disabled = true;
+  });
+}
+var ingestForm = document.getElementById('ingestForm');
+if (ingestForm){
+  ingestForm.addEventListener('submit', function(){
+    var btn = document.getElementById('ingestBtn');
+    btn.textContent = 'Ingestion…';
     btn.disabled = true;
   });
 }

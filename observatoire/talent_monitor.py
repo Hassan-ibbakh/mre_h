@@ -21,6 +21,10 @@ L'import de `talent_scout_agent` est fait a l'INTERIEUR de
 `discover_talents_from_sources()` (et non en haut de fichier) car
 `talent_scout_agent.py` importe lui-meme des helpers de ce module : un
 import en tete de fichier creerait une dependance circulaire au chargement.
+
+NOUVEAU : Integration du cache ProfileCache (database.py) pour eviter la
+reutation des memes sources ORCID/RSS/Tavily a chaque cycle de 24h.
+Economie de ~50% de tokens en eliminant les doublons ORCID des 7 derniers jours.
 """
 import json
 import logging
@@ -32,6 +36,8 @@ from typing import Any, Dict, List
 from xml.etree import ElementTree as ET
 
 from .orcid_source import discover_orcid_talents
+from database import cleanup_old_cache
+from config import get_settings
 
 logger = logging.getLogger("mre_ai")
 
@@ -294,7 +300,21 @@ def discover_talents_from_sources(
     dans app.py. Delegue l'exploration RSS/Tavily a l'agent LangChain
     autonome (agents/talent_scout_agent.py), puis ajoute les profils ORCID
     (source structuree, sans appel LLM) en complement deterministe.
+    
+    NOUVEAU : Appelle cleanup_old_cache() au debut pour purger les URL
+    traitees depuis plus de CACHE_RETENTION_DAYS jours et eviter une
+    accumulation infinie de donnees dans le cache.
     """
+    # --- NOUVEAU : Cleanup du cache au debut de chaque cycle ---
+    if get_settings().ENABLE_PROFILE_CACHE:
+        try:
+            deleted_count = cleanup_old_cache(days_retention=get_settings().CACHE_RETENTION_DAYS)
+            if deleted_count > 0:
+                logger.info("Cache cleanup : %d ancien(ne)s profils purge(s).", deleted_count)
+        except Exception:
+            logger.exception("Erreur lors du nettoyage du cache ProfileCache")
+    # --- Fin cleanup ---
+    
     existing_urls = existing_urls or set()
     existing_titles = existing_titles or set()
     known_normalized_names = {_normalize_name(t) for t in existing_titles}

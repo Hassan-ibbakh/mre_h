@@ -31,8 +31,12 @@ class Settings(BaseSettings):
         description="Endpoint OpenAI-compatible d'OpenRouter.",
     )
     OPENROUTER_MODEL: str = Field(
-        default="poolside/laguna-s-2.1:free",
-        description="Modèle LLM via OpenRouter : Poolside Laguna S 2.1 (gratuit, 262K contexte).",
+        default="openrouter/free",
+        description="Routeur gratuit OpenRouter, qui sélectionne un modèle disponible.",
+    )
+    OPENROUTER_OPPORTUNITY_MODEL: str = Field(
+        default="openrouter/free",
+        description="Modèle OpenRouter utilisé pour valider et classifier les opportunités d'investissement.",
     )
     LLM_TEMPERATURE: float = Field(default=0.1, ge=0.0, le=1.0)
     LLM_MAX_TOKENS: int = Field(default=4096, gt=0, le=32768)
@@ -46,12 +50,20 @@ class Settings(BaseSettings):
         default="",
         description="2ème clé OpenRouter dédiée au pool de l'Observatoire (extraction + agents).",
     )
+    OPENROUTER_API_KEY_3: str = Field(
+        default="",
+        description="3ème clé OpenRouter dédiée au pool de l'Observatoire (extraction + agents).",
+    )
+    OPENROUTER_API_KEY_4: str = Field(
+        default="",
+        description="4ème clé OpenRouter dédiée au pool de l'Observatoire (extraction + agents).",
+    )
     OPENROUTER_EXTRACTOR_MODEL: str = Field(
-        default="poolside/laguna-s-2.1:free",
+        default="openrouter/free",
         description="Modèle OpenRouter gratuit pour extraire/valider un profil de talent (JSON structuré).",
     )
     OPENROUTER_AGENT_MODEL: str = Field(
-        default="poolside/laguna-s-2.1:free",
+        default="openrouter/free",
         description="Modèle OpenRouter gratuit pour les agents tool-calling (scout + observatory). "
         "Doit supporter le tool-calling sur OpenRouter.",
     )
@@ -67,9 +79,8 @@ class Settings(BaseSettings):
         description="Collection dédiée au droit immobilier marocain pour les MRE.",
     )
     EMBEDDING_MODEL: str = Field(
-        default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-        description="Embeddings locaux multilingues FR/AR (384 dimensions, ~4x plus rapide que bge-m3 sur CPU). "
-        "Pour plus de précision, remettre BAAI/bge-m3 (1024 dims) et purger chroma_db/.",
+        default="BAAI/bge-m3",
+        description="Embeddings locaux multilingues FR/AR (1024 dimensions, compatibles avec la collection existante).",
     )
     EMBEDDING_BATCH_SIZE: int = Field(
         default=64,
@@ -99,6 +110,30 @@ class Settings(BaseSettings):
     ENABLE_DAILY_SYNC: bool = Field(
         default=False,
         description="Activer la synchronisation automatique des talents toutes les 24h."
+    )
+
+    # ----- Cache & Deduplication (Observatoire) -----
+    ENABLE_PROFILE_CACHE: bool = Field(
+        default=True,
+        description="Activer le cache des profils/URLs pour éviter la réutilisation. "
+        "Réduit ~50% de la consommation tokens en éliminant les doublons ORCID.",
+    )
+    CACHE_RETENTION_DAYS: int = Field(
+        default=30,
+        ge=1,
+        le=365,
+        description="Nombre de jours à conserver une URL en cache après traitement. "
+        "Après cette période, la URL est purgée et peut être retraitée.",
+    )
+    SKIP_CACHED_PROFILES: bool = Field(
+        default=True,
+        description="Si True, passer les URLs déjà en cache (approved/rejected). "
+        "Si False, retraiter même si en cache (debug/dev mode).",
+    )
+    CACHE_CLEANUP_INTERVAL_DAYS: int = Field(
+        default=7,
+        ge=1,
+        description="Intervalle (jours) entre les nettoyages du cache.",
     )
 
 

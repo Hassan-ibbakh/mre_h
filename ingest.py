@@ -251,21 +251,27 @@ def chunk_page(page_no: int, md_text: str, source: str, sector: str,
 
 def ingest_document(path: Path, collection, embeddings: HuggingFaceEmbeddings,
                     sector: str = SECTOR_LABEL,
-                    splitter: RecursiveCharacterTextSplitter | None = None) -> int:
+                    splitter: RecursiveCharacterTextSplitter | None = None,
+                    skip_existing: bool = False) -> int:
     """Ingère un document (.pdf brut ou .md nettoyé) : extraction -> nettoyage -> chunks.
 
     Le nom de source retenu est le nom du fichier tel quel (ex. "loi_immo.pdf")
     pour les PDFs, et le nom sans extension pour les .md (ex. "IGOC 2024") :
     c'est ce nom qui s'affiche dans les citations côté frontend.
     """
+    source = path.stem if path.suffix.lower() == ".md" else path.name
+    if skip_existing:
+        existing = collection.get(where={"source": source}, limit=1)
+        if existing and existing.get("ids"):
+            logger.info("Source déjà présente, fichier ignoré : '{}'.", path.name)
+            return 0
+
     if path.suffix.lower() == ".md":
         logger.info("=== Ingestion (Markdown nettoyé) : {} ===", path.name)
         pages = read_md_pages(path)
-        source = path.stem
     else:
         logger.info("=== Ingestion : {} ===", path.name)
         pages = extract_pages_markdown(path)
-        source = path.name
 
     if not pages:
         logger.error("Aucune page exploitable pour '{}' — fichier ignoré.", path.name)
@@ -285,14 +291,14 @@ def ingest_document(path: Path, collection, embeddings: HuggingFaceEmbeddings,
 
     # Idempotence : on supprime les chunks déjà présents pour ce fichier
     existing = collection.get(where={"source": source})
-    if existing and existing.get("ids"):
+    if existing and existing.get("ids") and not skip_existing:
         collection.delete(ids=existing["ids"])
         logger.info("{} ancien(s) chunk(s) supprimé(s) pour '{}'.", len(existing["ids"]), source)
 
     # Migration PDF -> .md : si ce document était auparavant ingéré depuis son
     # PDF brut (source "<nom>.pdf"), on purge aussi ces anciens chunks pour
     # éviter la double ingestion de la même loi.
-    if path.suffix.lower() == ".md":
+    if path.suffix.lower() == ".md" and not skip_existing:
         legacy_source = f"{source}.pdf"
         legacy = collection.get(where={"source": legacy_source})
         if legacy and legacy.get("ids"):
@@ -363,6 +369,61 @@ def collect_sources(paths: List[Path]) -> List[Path]:
         seen_names.add(f.name)
         deduped.append(f)
     return deduped
+
+
+def ingest_path(path: Path, persist_dir: str = DEFAULT_PERSIST_DIR,
+                collection_name: str = DEFAULT_COLLECTION,
+                embedding_model: str = DEFAULT_EMBEDDING_MODEL,
+                batch_size: int = BATCH_SIZE,
+                prune_missing: bool = False) -> Tuple[int, int]:
+    """Ingère un fichier ou dossier depuis une application hôte."""
+    sources = collect_sources([path])
+    if not sources:
+        return 0, 0
+    data_root = path.expanduser().resolve().parent
+    embeddings = HuggingFaceEmbeddings(
+        model_name=embedding_model,
+        model_kwargs={"device": resolve_device()},
+        encode_kwargs={"normalize_embeddings": True, "batch_size": batch_size},
+    )
+    client = PersistentClient(path=persist_dir)
+    collection = client.get_or_create_collection(
+        name=collection_name,
+        metadata={"hnsw:space": "cosine"},
+    )
+    # Pour un dossier sectoriel explicite (ex. data/investissement), supprimer
+    # les sources de ce secteur dont le fichier n'existe plus. Cette option
+    # reste désactivée par défaut pour ne pas purger les autres secteurs lors
+    # d'une ingestion globale de data/.
+    if prune_missing and path.is_dir():
+        sector_name = path.resolve().name
+        current_sources = {
+            source.stem if source.suffix.lower() == ".md" else source.name
+            for source in sources
+        }
+        indexed = collection.get(where={"sector": sector_name}, include=["metadatas"])
+        stale_ids = [
+            record_id
+            for record_id, metadata in zip(indexed.get("ids") or [], indexed.get("metadatas") or [])
+            if str((metadata or {}).get("source") or "") not in current_sources
+        ]
+        if stale_ids:
+            collection.delete(ids=stale_ids)
+            logger.info("{} chunk(s) obsolète(s) supprimé(s) du secteur '{}'.", len(stale_ids), sector_name)
+    splitter = _make_splitter(CHUNK_SIZE, CHUNK_OVERLAP)
+    ingested_files = 0
+    total_chunks = 0
+    for source in sources:
+        source_name = source.stem if source.suffix.lower() == ".md" else source.name
+        sector = _sector_for_path(source, data_root)
+        total_chunks += ingest_document(
+            source, collection, embeddings, sector=sector, splitter=splitter,
+            # Les fichiers existants sont remplacés afin de refléter les
+            # corrections du contenu et de réinitialiser leur validation LLM.
+            skip_existing=False,
+        )
+        ingested_files += 1
+    return ingested_files, total_chunks
 
 
 def main() -> None:

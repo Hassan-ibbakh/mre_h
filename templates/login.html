@@ -22,6 +22,9 @@ body{
 .corner{position:absolute;width:120px;height:120px;opacity:.5;}
 .corner.tl{top:-10px;left:-10px;}
 .corner.br{bottom:-10px;right:-10px;transform:rotate(180deg);}
+.public-nav{position:fixed;top:18px;right:28px;z-index:3;display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;}
+.public-nav a{color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;}.public-nav a:hover{color:var(--gold);}.public-nav .nav-cta{background:var(--navy);color:var(--white);padding:8px 14px;border-radius:20px;}.public-nav .nav-cta:hover{color:var(--white);background:var(--navy-2);}
+@media(max-width:760px){.public-nav{position:static;justify-content:center;width:100%;margin-bottom:22px;gap:10px}.public-nav a:not(.nav-cta){display:none;}body{display:block;padding-top:20px}.card{margin:auto;}}
 .card{
   background:var(--white);width:100%;max-width:400px;padding:40px 36px;
   border-radius:18px;border:1px solid var(--gray);box-shadow:0 24px 60px rgba(11,30,51,.1);
@@ -57,6 +60,8 @@ button:hover{background:var(--navy-2);}
 </style>
 </head>
 <body>
+
+<nav class="public-nav" aria-label="Navigation principale"><a href="{{ url_for('home') }}">Accueil</a><a href="{{ url_for('opportunities') }}">Opportunités</a><a href="{{ url_for('chat_page') }}">Assistant IA</a><a href="{{ url_for('observatory') }}">Observatoire</a><a href="{{ url_for('home') }}#about">À propos</a><a class="nav-cta" href="{{ url_for('login') }}">Se connecter</a></nav>
 
 <svg class="corner tl" viewBox="0 0 120 120"><g fill="none" stroke="#C9972E" stroke-width="1.5"><polygon points="20,45 30,20 40,45 65,35 55,60 65,85 40,75 30,100 20,75 -5,85 5,60 -5,35"/></g></svg>
 <svg class="corner br" viewBox="0 0 120 120"><g fill="none" stroke="#3F8F3F" stroke-width="1.5"><polygon points="20,45 30,20 40,45 65,35 55,60 65,85 40,75 30,100 20,75 -5,85 5,60 -5,35"/></g></svg>

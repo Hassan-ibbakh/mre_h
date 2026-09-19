@@ -91,7 +91,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
     <nav>
       <ul>
         <li><a href="{{ url_for('home') }}">Accueil</a></li>
-        <li><a href="{{ url_for('home') }}#opportunities">Opportunités</a></li>
+        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
         <li><a href="{{ url_for('chat_page') }}" class="active">Assistant IA</a></li>
         <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
         <li><a href="{{ url_for('home') }}#about">À propos</a></li>
@@ -272,7 +272,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
       const response = await fetch('/api/v1/chat/real-estate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: message })
+        body: JSON.stringify({ query: message, sector: currentSector })
       });
       removeTyping();
       if (!response.ok) {

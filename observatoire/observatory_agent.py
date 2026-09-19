@@ -36,7 +36,7 @@ pertinents. Termine toujours par une courte reponse en francais expliquant ce \
 que tu as trouve (ou pas)."""
 
 
-def _build_tools(search_profiles_fn, list_options_fn, selected, result_cache):
+def _build_tools(search_profiles_fn, list_options_fn, selected, result_cache, raw_query):
     def _cache_and_format(results: List[Dict[str, Any]]) -> str:
         if not results:
             return "Aucun profil trouve pour ces criteres."
@@ -47,7 +47,7 @@ def _build_tools(search_profiles_fn, list_options_fn, selected, result_cache):
             lines.append(
                 f"- id:{r['id']} | {r['title']} | secteur:{r.get('sector_label', '?')} | "
                 f"pays:{r.get('country') or '?'} | experience:{years if years is not None else '?'} ans | "
-                f"tags:{', '.join(r.get('tags', [])[:5])}"
+                f"score:{r.get('match_score', '?')} | tags:{', '.join(r.get('tags', [])[:5])}"
             )
         return "\n".join(lines)
 
@@ -76,13 +76,13 @@ def _build_tools(search_profiles_fn, list_options_fn, selected, result_cache):
         d'un secteur (vide = tous les secteurs). `country` : nom de pays,
         meme partiel (vide = tous les pays). `min_years_experience` : 0 si
         pas de contrainte d'experience. Gratuit, appelable plusieurs fois
-        pour affiner. Retourne une liste courte avec un id par profil --
-        reutilise ces ids pour select_matches."""
+        pour affiner. Retourne une liste courte avec un id et un score par
+        profil -- reutilise ces ids pour select_matches."""
         kw_list = tokenize_keywords(keywords)
         try:
             results = search_profiles_fn(
-                keywords=kw_list, sector=sector or None, country=country or None,
-                min_years_experience=min_years_experience or None,
+                query=raw_query, keywords=kw_list, sector=sector or None,
+                country=country or None, min_years_experience=min_years_experience or None,
             )
         except Exception:
             logger.exception("Erreur outil search_profiles")
@@ -110,15 +110,20 @@ def _build_tools(search_profiles_fn, list_options_fn, selected, result_cache):
 def build_observatory_agent(
     search_profiles_fn: Callable[..., List[Dict[str, Any]]],
     list_options_fn: Callable[[], Dict[str, List[str]]],
+    raw_query: str = "",
 ) -> Tuple[AgentExecutor, List[Dict[str, Any]]]:
     """
     A appeler UNE FOIS PAR REQUETE HTTP (pas au demarrage) : `selected` est un
     etat local capture par closure pour cet appel precis. Lis `selected`
     APRES executor.invoke(...), pas avant.
+
+    `raw_query` : la phrase brute de l'utilisateur, propagee jusqu'a
+    search_profiles_fn pour permettre le scoring semantique (embeddings) en
+    plus du scoring mots-cles.
     """
     selected: List[Dict[str, Any]] = []
     result_cache: Dict[int, Dict[str, Any]] = {}
-    tools = _build_tools(search_profiles_fn, list_options_fn, selected, result_cache)
+    tools = _build_tools(search_profiles_fn, list_options_fn, selected, result_cache, raw_query)
 
     settings = get_settings()
     llm = RetryableChatOpenRouter(model=settings.OPENROUTER_AGENT_MODEL, temperature=0.0)

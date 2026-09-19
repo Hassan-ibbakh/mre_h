@@ -1,5 +1,15 @@
-# ===== Secrets — NE JAMAIS COMMITTER =====
+# ===== Secrets - NE JAMAIS COMMITTER =====
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+secrets/
+keys/
 
 # ===== Environnement Python =====
 venv/

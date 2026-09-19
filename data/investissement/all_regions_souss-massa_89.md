@@ -1,8 +1,0 @@
-<!-- PAGE 0 -->
-
-# souss-massa — document 89
-
-*Source : https://agadirinvest.com/avis-dappel-a-projet-pour-le-financement-de-la-participation-des-tpme-gie-et-cooperatives-regionales-au-salon-the-foodeshow/*  
-*Secteurs identifiés (scraper) : agriculture*
-
-Dans le cadre des nouvelles prérogatives des Centres Régionaux d’Investissement, tracées par la loi 47.18 et notamment en relation avec la promotion de l’investissement régionalet de l’accompagnement des entreprises, le Centre Régional d’Investissement de la région de Souss Massa lance un appel à projet en vue de financer la participation de 12 TPME, GIE et coopératives de la région en tant qu’exposants dans le Salon Virtuel International d’Agroalimentaire « THE FOODESHOW ». Par ailleurs, cette initiative s’inscrit également dans le cadre des actions entreprises par la région Souss Massa en vue de faire face aux lourdes conséquences de la crise sanitaire et favoriser la relance économique des entreprises régionales. Ainsi, cet appel à projet est ouvert aux TPME, GIE et Coopératives régionales opérants principalement dans la transformation des produits de terroir. L’objectif étant d’appuyer les entreprises sélectionnées pour rencontrer les acteurs internationaux du domaine de l’industrie agroalimentaire, échanger avec des décideurs et les mettre en relation avec des acheteurs potentiels en provenance de plusieurs pays, avec le soutien des organisateurs. Le salon qui aura lieu le 8 et 9 septembre 2020 avec la participation de 200 exposants, 3000 participants de 50 pays dont 15 grands acheteurs internationaux est un rendez-vous incontournable et une opportunité pour les TPME de la région pour explorer de nouveaux marchés et promouvoir les produits made in Morroco.

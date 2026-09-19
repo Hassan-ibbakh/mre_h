@@ -17,12 +17,18 @@ TROIS univers servis par le même backend :
 3) Observatoire des Talents MRE (portage Flask -> FastAPI) :
    - GET /observatory : liste les profils réels en base (SQLAlchemy pur).
    - POST /api/observatory-chat : agent LangChain tool-calling (OpenRouter)
-     qui cherche dans la base et retourne les meilleurs matchs.
-   - POST /admin/talents/sync : déclenche un cycle de découverte à la demande.
+     qui cherche dans la base (scoring hybride mots-clés + sémantique,
+     embeddings batchés) et retourne les meilleurs matchs.
+   - POST /admin/talents/sync : déclenche un cycle de découverte à la demande
+     et revient sur le dashboard admin avec un message flash (succès/erreur).
    - Un cycle de sync tourne aussi automatiquement toutes les 24h en tâche de
      fond (thread daemon, ne bloque pas l'event loop).
    - Authentification admin par session cookie signée (voir auth.py) :
      POST /login, POST /register, GET /logout, routes /admin/* protégées.
+   - Ajout manuel d'un profil (POST /admin/add) : auto-approuvé et publié
+     immédiatement si le pays renseigné est à l'étranger (hors Maroc) ;
+     mis en attente ("pending", inactif) si aucun pays ou pays = Maroc,
+     en attendant une revue.
 
 Format SSE (endpoint /api/v1/chat/real-estate) :
     data: {"type": "sources", "sources": [...]}
@@ -41,9 +47,11 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+import numpy as np
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
@@ -56,16 +64,18 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from config import get_settings
 from models import ChatRequest
-from rag_engine import get_rag_engine
+from rag_engine import get_rag_engine, get_rag_opportunities
 
 # ---------------------------------------------------------------------------
 # Observatoire des Talents MRE
 # ---------------------------------------------------------------------------
-from database import Post, User, get_db, init_db
+from database import Post, User, classify_mre_review_status, get_db, init_db
 from auth import get_current_user, hash_password, verify_password, flash
 from talent_sync import sync_talents_dynamic
+from ingest import ingest_path
 from observatoire.observatory_agent import build_observatory_agent
 from observatoire.scheduler import start_daily_sync
+from observatoire.utils import normalize_text, embed_query, embed_profiles_batch, cosine_similarity
 
 logging.basicConfig(
     level=logging.INFO,
@@ -83,6 +93,7 @@ templates = Jinja2Templates(directory="templates")
 # Cartographie des endpoints Flask historiques vers les routes FastAPI actuelles
 _ENDPOINT_URLS = {
     "home": "/",
+    "opportunities": "/opportunities",
     "chat_page": "/chat",
     "observatory": "/observatory",
     "login": "/login",
@@ -93,6 +104,7 @@ _ENDPOINT_URLS = {
     "toggle_post": "/admin/toggle",
     "delete_post": "/admin/delete",
     "sync_talents_admin": "/admin/talents/sync",
+    "ingest_investment_admin": "/admin/investment/ingest",
 }
 
 
@@ -141,6 +153,15 @@ _SECTOR_CODE_TO_FOLDER = {
     "investissement": "investissement",
     "finance": "finance",
     "douane": "douane",
+}
+_RAG_SECTOR_LABELS = {
+    "immobilier": "l'immobilier",
+    "agriculture": "l'agriculture",
+    "industrie": "l'industrie",
+    "tourisme": "le tourisme",
+    "investissement": "l'investissement",
+    "finance": "la finance",
+    "douane": "la douane",
 }
 
 # ----- Secteurs Observatoire des Talents MRE (indépendants des secteurs RAG) -----
@@ -193,21 +214,21 @@ class PostView:
 # ---------------------------------------------------------------------------
 # Prompt système (Markdown pur, citations obligatoires)
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT_TEMPLATE = """Tu es **Sanad AI**, agent juridique et fiscal spécialisé en immobilier marocain pour les Marocains Résidant à l'Étranger (MRE).
+SYSTEM_PROMPT_TEMPLATE = """Tu es **Sanad AI**, assistant spécialisé en {sector_label} au Maroc pour les Marocains Résidant à l'Étranger (MRE).
 
-Tu réponds UNIQUEMENT à partir du contexte juridique fourni ci-dessous (extraits de lois marocaines : CGI, Loi 18-00, Loi 44-00 VEFA, Dahir de la Conservation Foncière, etc.).
+Tu réponds UNIQUEMENT à partir du contexte fourni ci-dessous, issu des documents vérifiés du secteur sélectionné.
 
 RÈGLES STRICTES :
 1. Cite chaque affirmation avec sa source : [Source: nom_du_document, page X].
 2. N'invente JAMAIS d'article, de taux, de montant ou de restriction absents du contexte.
 3. Si le contexte ne contient pas l'information, réponds honnêtement que cette information ne figure pas dans ta base de connaissances.
-4. Hors périmètre (droit du travail, fiscalité étrangère, etc.) : réoriente poliment vers l'immobilier marocain.
+4. Hors périmètre : réoriente poliment vers le secteur sélectionné.
 
 FORMAT DE SORTIE :
 - Markdown pur et lisible : titres (##), listes à puces, chiffres clés en **gras**.
 - Pas de JSON, pas de blocs de code, pas de balises XML. Uniquement du Markdown.
 
-CONTEXTE JURIDIQUE (sources récupérées par le RAG) :
+CONTEXTE (sources récupérées par le RAG) :
 {context}
 """
 
@@ -265,8 +286,9 @@ app = FastAPI(
     title="Sanad AI — Agent Immobilier MRE",
     description="RAG juridique (ChromaDB + bge-m3) orchestré vers Poolside Laguna S 2.1 via OpenRouter. "
                 "Réponses en streaming SSE, Markdown pur. Observatoire des Talents MRE (agents "
-                "LangChain tool-calling via OpenRouter). Ancienne interface web servie telle quelle.",
-    version="1.3.0",
+                "LangChain tool-calling via OpenRouter, scoring hybride mots-clés + sémantique). "
+                "Ancienne interface web servie telle quelle.",
+    version="1.4.0",
     lifespan=lifespan,
 )
 
@@ -367,7 +389,8 @@ def _build_rag_prompt(query: str, sector: str | None = None) -> tuple[str, list[
         else "Aucun document pertinent trouvé dans la base de connaissances. "
              "Réponds honnêtement que l'information ne figure pas dans ta base."
     )
-    prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context)
+    sector_label = _RAG_SECTOR_LABELS.get(sector or "", "l'investissement")
+    prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, sector_label=sector_label)
     sources = [{"source": c.source, "page": c.page} for c in chunks]
     return prompt, sources
 
@@ -377,7 +400,7 @@ def _build_rag_prompt(query: str, sector: str | None = None) -> tuple[str, list[
 # ---------------------------------------------------------------------------
 @app.post("/api/v1/chat/real-estate")
 async def chat_real_estate(payload: ChatRequest) -> StreamingResponse:
-    """Chat juridique immobilier MRE — réponse streaming SSE (Markdown pur)."""
+    """Chat sectoriel MRE — réponse streaming SSE (Markdown pur)."""
     session_id = uuid.uuid4().hex[:12]
     logger.info("Session %s : %s", session_id, payload.query[:120].replace("\n", " "))
 
@@ -387,7 +410,14 @@ async def chat_real_estate(payload: ChatRequest) -> StreamingResponse:
             detail="OPENROUTER_API_KEY non configurée dans le fichier .env",
         )
 
-    prompt, sources = _build_rag_prompt(payload.query)
+    sector_code = payload.sector or "real_estate"
+    rag_sector = _SECTOR_CODE_TO_FOLDER.get(sector_code)
+    if not rag_sector:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Secteur non pris en charge.",
+        )
+    prompt, sources = _build_rag_prompt(payload.query, sector=rag_sector)
 
     user_content = payload.query
     if payload.country:
@@ -430,7 +460,7 @@ async def legacy_chat(payload: LegacyChatRequest) -> StreamingResponse:
             detail="OPENROUTER_API_KEY non configurée dans le fichier .env",
         )
 
-    prompt, sources = _build_rag_prompt(payload.query, sector=_SECTOR_CODE_TO_FOLDER.get(payload.sector))
+    prompt, sources = _build_rag_prompt(payload.message, sector=_SECTOR_CODE_TO_FOLDER.get(payload.sector))
 
     return StreamingResponse(
         _stream_llm(prompt=prompt, user_content=payload.message, session_id=session_id, sources=sources),
@@ -442,72 +472,188 @@ async def legacy_chat(payload: LegacyChatRequest) -> StreamingResponse:
 # ---------------------------------------------------------------------------
 # Observatoire des Talents MRE — routes réelles (branchées sur la DB + l'agent)
 # ---------------------------------------------------------------------------
+def _keyword_score(post: Post, keywords: list[str]) -> float:
+    """Score 0-100 basé sur le recouvrement mots-clés, pondéré par champ
+    (tag > titre > description)."""
+    if not keywords:
+        return 40.0  # neutre : on laisse le score sémantique décider
+    tags = [normalize_text(t) for t in post.tags_list()]
+    title_lower = normalize_text(post.title)
+    desc_lower = normalize_text(post.description or "")
+    hits = 0.0
+    for kw in keywords:
+        weight = 0.0
+        if any(kw in t for t in tags):
+            weight = 1.0       # tag = signal fort
+        if kw in title_lower:
+            weight = max(weight, 0.8)
+        if kw in desc_lower:
+            weight = max(weight, 0.5)
+        hits += weight
+    return min(100.0, (hits / len(keywords)) * 100)
+
+
+def _country_bonus(post: Post, full_query_norm: str, country_filter: str | None) -> float:
+    """Bonus si le pays du profil est explicitement cité dans la requête
+    (ex: '...au Canada') OU correspond au filtre `country` passé par l'agent."""
+    if not post.country:
+        return 0.0
+    post_country_norm = normalize_text(post.country)
+    if country_filter and country_filter.lower() in post.country.lower():
+        return 12.0
+    if post_country_norm and post_country_norm in full_query_norm:
+        return 12.0
+    return 0.0
+
+
+def _dedupe_by_name(results: list[dict]) -> list[dict]:
+    """Fusionne les doublons (même personne synchronisée depuis plusieurs
+    sources) en ne gardant que la meilleure occurrence par nom normalisé."""
+    best_by_name: dict[str, dict] = {}
+    for r in results:
+        key = str(r["id"]) if r.get("is_masked") else normalize_text(r["title"])
+        current_best = best_by_name.get(key)
+        if current_best is None or r["match_score"] > current_best["match_score"]:
+            best_by_name[key] = r
+    return list(best_by_name.values())
+
+
+def _public_profile_data(post: Post, match_score: int | None = None) -> dict:
+    is_masked = post.review_status == "masked"
+    return {
+        "id": post.id,
+        "title": "Profil MRE masqué" if is_masked else post.title,
+        "sector_label": post.sector_label(OBSERVATORY_DOMAIN_LABELS),
+        "country": post.country,
+        "years_experience": post.years_experience,
+        "tags": post.tags_list(),
+        "match_score": match_score,
+        "description": "Les informations détaillées de ce profil sont masquées." if is_masked else (post.description or ""),
+        "source_name": "" if is_masked else (post.source_name or ""),
+        "source_url": "" if is_masked else (post.source_url or ""),
+        "image_url": "" if is_masked else (post.image_url or ""),
+        "review_status": post.review_status,
+        "is_masked": is_masked,
+    }
+
+
+def _public_post(post: Post):
+    if post.review_status != "masked":
+        return post
+    return SimpleNamespace(
+        id=post.id,
+        title="Profil MRE masqué",
+        sector=post.sector,
+        country=post.country,
+        expertise_tags=post.expertise_tags,
+        years_experience=post.years_experience,
+        description="Les informations détaillées de ce profil sont masquées.",
+        is_active=post.is_active,
+        review_status=post.review_status,
+        source_url="",
+        source_name="",
+        image_url="",
+        auto_discovered=post.auto_discovered,
+        sector_label=lambda: post.sector_label(OBSERVATORY_DOMAIN_LABELS),
+        tags_list=post.tags_list,
+        initials=lambda: "M",
+    )
+
+
 def _search_observatory_profiles(
     db: Session,
+    query: str | None = None,
     keywords: list[str] | None = None,
     sector: str | None = None,
     country: str | None = None,
     min_years_experience: int | None = None,
 ) -> list[dict]:
-    """Recherche de profils dans la base, avec un score de pertinence (0-100)
-    utilisé par le nouveau template Observatory.html (badge "X% match").
-    Utilisée comme `search_profiles_fn` par l'agent LangChain de l'Observatoire."""
+    """Recherche de profils avec un score de pertinence (0-100) combinant :
+    - scoring mots-clés (poids fixe)
+    - scoring sémantique par embeddings, calculés en UN SEUL appel batché
+      (embed_profiles_batch) au lieu d'un appel par profil -- c'était le
+      point qui rendait /api/observatory-chat lent (~1 minute pour 45
+      profils encodés un par un). Le résultat est ensuite normalisé par lot
+      (min-max sur les candidats de cette recherche précise) pour éviter que
+      la compression naturelle de bge-m3 (similarités souvent 0.3-0.6 même
+      pour du texte sans rapport) ne fasse remonter des profils non
+      pertinents à des scores proches des profils réellement pertinents.
+    - bonus pays, détecté soit via le filtre explicite, soit directement
+      dans le texte de la requête ("...au Canada").
+    Déduplique ensuite par nom (profils synchronisés depuis plusieurs
+    sources)."""
     keywords = keywords or []
-    query = db.query(Post).filter_by(is_active=True)
+    full_query = (query or " ".join(keywords)).strip()
+    full_query_norm = normalize_text(full_query)
+
+    db_query = db.query(Post).filter(
+        Post.is_active.is_(True), Post.review_status == "approved"
+    )
     if sector:
-        query = query.filter(Post.sector == sector)
-    candidates = query.all()
+        db_query = db_query.filter(Post.sector == sector)
+    candidates = db_query.all()
+
+    query_vec = embed_query(full_query) if full_query else None
+
+    # ----- Embeddings en un seul batch, au lieu d'un appel par profil -----
+    profile_vecs: dict[int, np.ndarray] = {}
+    if query_vec is not None and candidates:
+        items = [
+            (post.id, f"{post.title}. {' '.join(post.tags_list())}. {post.description or ''}")
+            for post in candidates
+        ]
+        profile_vecs = embed_profiles_batch(items)
+
+    raw: list[tuple[Post, float, float | None]] = []
+    for post in candidates:
+        kw_score = _keyword_score(post, keywords)
+        sem_score = None
+        if query_vec is not None:
+            profile_vec = profile_vecs.get(post.id)
+            if profile_vec is not None:
+                sem_score = max(0.0, cosine_similarity(query_vec, profile_vec)) * 100
+        raw.append((post, kw_score, sem_score))
+
+    sem_values = [s for _, _, s in raw if s is not None]
+    sem_min, sem_max = (min(sem_values), max(sem_values)) if sem_values else (0.0, 0.0)
+    sem_range = max(sem_max - sem_min, 1e-6)
 
     scored: list[tuple[int, Post]] = []
-    for post in candidates:
-        tags = [t.lower() for t in post.tags_list()]
-        title_lower = post.title.lower()
-        desc_lower = (post.description or "").lower()
-        keyword_hits = sum(
-            1 for kw in keywords
-            if any(kw in t for t in tags) or kw in title_lower or kw in desc_lower
-        )
-
-        score = 0
-        if keywords:
-            score += (keyword_hits / len(keywords)) * 70
+    for post, kw_score, sem_score in raw:
+        if sem_score is not None:
+            sem_normalized = ((sem_score - sem_min) / sem_range) * 100
+            score = 0.45 * kw_score + 0.55 * sem_normalized
         else:
-            score += 40
+            score = kw_score
 
         if min_years_experience is not None and post.years_experience is not None:
-            score += 20 if post.years_experience >= min_years_experience else -15
+            score += 12 if post.years_experience >= min_years_experience else -15
         elif min_years_experience is None:
-            score += 10
+            score += 5
 
-        if country and post.country and country.lower() in post.country.lower():
-            score += 10
+        score += _country_bonus(post, full_query_norm, country)
 
         score = max(0, min(100, round(score)))
-        if score > 0 and (not keywords or keyword_hits > 0 or sector or country):
+        should_include = score >= 20 if (keywords or query_vec is not None) else True
+        if should_include:
             scored.append((score, post))
 
     scored.sort(key=lambda x: x[0], reverse=True)
 
-    return [
+    results = [
         {
             "id": p.id,
-            "title": p.title,
-            "sector_label": p.sector_label(OBSERVATORY_DOMAIN_LABELS),
-            "country": p.country,
-            "years_experience": p.years_experience,
-            "tags": p.tags_list(),
-            "match_score": score,
-            "description": p.description or "",
-            "source_name": p.source_name or "",
-            "source_url": p.source_url or "",
-            "image_url": p.image_url or "",
+            **_public_profile_data(p, match_score=score),
         }
-        for score, p in scored[:15]
+        for score, p in scored
     ]
+    return _dedupe_by_name(results)[:15]
 
 
 def _list_observatory_options(db: Session) -> dict:
-    posts = db.query(Post).filter_by(is_active=True).all()
+    posts = db.query(Post).filter(
+        Post.is_active.is_(True), Post.review_status == "approved"
+    ).all()
     return {
         "sectors": sorted({p.sector for p in posts if p.sector}),
         "countries": sorted({p.country for p in posts if p.country}),
@@ -520,11 +666,12 @@ async def legacy_observatory_chat(
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Chat de recherche de profils : un agent LangChain tool-calling (OpenRouter)
-    interroge la base de l'Observatoire et sélectionne les meilleurs matchs."""
+    interroge la base de l'Observatoire (scoring hybride mots-clés + sémantique)
+    et sélectionne les meilleurs matchs."""
 
-    def _search(keywords=None, sector=None, country=None, min_years_experience=None):
+    def _search(query=None, keywords=None, sector=None, country=None, min_years_experience=None):
         return _search_observatory_profiles(
-            db, keywords=keywords, sector=sector, country=country,
+            db, query=query, keywords=keywords, sector=sector, country=country,
             min_years_experience=min_years_experience,
         )
 
@@ -535,6 +682,7 @@ async def legacy_observatory_chat(
         executor, selected = build_observatory_agent(
             search_profiles_fn=_search,
             list_options_fn=_list_options,
+            raw_query=payload.message,
         )
         result = executor.invoke({"input": payload.message})
         response_text = result.get("output", "") if isinstance(result, dict) else str(result)
@@ -559,22 +707,47 @@ async def legacy_observatory_chat(
 
 @app.post("/admin/talents/sync")
 async def sync_talents_admin(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
-) -> JSONResponse:
-    """Déclenche un cycle de découverte de talents à la demande (hors du
-    cycle automatique de 24h) et retourne le nombre de profils créés."""
+):
+    """Déclenche une synchronisation puis revient sur le dashboard admin.
+    La route ne renvoie pas un JSON brut car l'action est déclenchée depuis
+    l'interface admin, qui doit rester sur la page dashboard après exécution."""
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
     try:
         count = sync_talents_dynamic(db)
+        flash(request, f"Synchronisation terminée : {count} nouveau(x) profil(s) ajouté(s).", "success")
     except Exception:
         logger.exception("Erreur durant le sync manuel des talents")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur pendant la synchronisation des talents.",
+        flash(request, "Erreur pendant la synchronisation des talents.", "error")
+        return RedirectResponse(url="/admin", status_code=303)
+    return RedirectResponse(url="/admin", status_code=303)
+
+
+@app.post("/admin/investment/ingest")
+async def ingest_investment_admin(
+    request: Request,
+    current_user: User | None = Depends(get_current_user),
+):
+    """Ingère les documents d'investissement depuis le dashboard admin."""
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
+    try:
+        files, chunks = ingest_path(
+            Path("data/investissement"),
+            persist_dir=settings.CHROMA_PERSIST_DIR,
+            collection_name=settings.CHROMA_COLLECTION,
+            embedding_model=settings.EMBEDDING_MODEL,
+            batch_size=settings.EMBEDDING_BATCH_SIZE,
+            prune_missing=True,
         )
-    return JSONResponse({"created": count})
+        flash(request, f"Ingestion terminée : {files} fichier(s), {chunks} chunk(s) traité(s).", "success")
+    except Exception:
+        logger.exception("Erreur durant l'ingestion des opportunités d'investissement")
+        flash(request, "Erreur pendant l'ingestion des documents d'investissement.", "error")
+    return RedirectResponse(url="/admin", status_code=303)
 
 
 # ---------------------------------------------------------------------------
@@ -586,19 +759,25 @@ async def home(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    """Page d'accueil publique : affiche les 4 derniers profils actifs de
-    l'Observatoire dans la section 'Observatoire des compétences'."""
+    """Page d'accueil publique avec profils et opportunités issus des données réelles."""
     posts = (
         db.query(Post)
-        .filter_by(is_active=True)
+        .filter(Post.is_active.is_(True), Post.review_status == "approved")
         .order_by(Post.created_at.desc())
         .limit(4)
         .all()
     )
+    try:
+        opportunities = get_rag_opportunities(settings, limit=8)
+    except Exception:
+        logger.exception("Impossible de charger les opportunités RAG pour l'accueil")
+        opportunities = []
+
     return templates.TemplateResponse(
         request=request, name="index.html",
         context={
-            "posts": posts,
+            "posts": [_public_post(post) for post in posts],
+            "opportunities": opportunities,
             "sector_labels": SECTOR_LABELS,
             "user": current_user,
         },
@@ -610,12 +789,29 @@ async def chat_page(request: Request):
     return templates.TemplateResponse(request=request, name="chat.html", context={})
 
 
+@app.get("/opportunities")
+async def opportunities_page(request: Request):
+    """Affiche toutes les opportunités d'investissement validées par le LLM."""
+    try:
+        opportunities = get_rag_opportunities(settings, limit=100)
+    except Exception:
+        logger.exception("Impossible de charger les opportunités d'investissement")
+        opportunities = []
+    sectors = sorted({str(item.get("sector") or "") for item in opportunities if item.get("sector")})
+    regions = sorted({str(item.get("region") or "") for item in opportunities if item.get("region")})
+    return templates.TemplateResponse(
+        request=request,
+        name="opportunities.html",
+        context={"opportunities": opportunities, "sectors": sectors, "regions": regions},
+    )
+
+
 @app.get("/observatory")
 async def observatory(request: Request, db: Session = Depends(get_db)):
     """Rend le template historique avec les profils réels de la base."""
     posts = (
         db.query(Post)
-        .filter_by(is_active=True)
+        .filter(Post.is_active.is_(True), Post.review_status == "approved")
         .order_by(Post.created_at.desc())
         .all()
     )
@@ -623,7 +819,7 @@ async def observatory(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request=request, name="Observatory.html",
         context={
-            "posts": posts,
+            "posts": [_public_post(post) for post in posts],
             "sector_labels": OBSERVATORY_DOMAIN_LABELS,
             "sectors": list(OBSERVATORY_DOMAIN_LABELS.keys()),
             "countries": countries,
@@ -753,15 +949,27 @@ async def add_post(
         flash(request, "Nom et domaine sont obligatoires.", "error")
         return RedirectResponse(url="/admin", status_code=303)
 
+    country_clean = country.strip()
+    is_foreign = bool(country_clean) and country_clean.lower() not in {"maroc", "morocco"}
+
+    confidence_score = 100 if is_foreign else 0
+    review_status = classify_mre_review_status(confidence_score, country_clean)
     post = Post(
-        title=title.strip(), sector=sector, country=country.strip() or None,
+        title=title.strip(), sector=sector, country=country_clean or None,
         expertise_tags=expertise_tags.strip(), description=description.strip(),
         years_experience=int(years_experience) if years_experience.isdigit() else None,
+        confidence_score=confidence_score,
+        review_status=review_status,
+        is_active=review_status in {"approved", "masked"},
         auto_discovered=False,
     )
     db.add(post)
     db.commit()
-    flash(request, "Profil talent publie.", "success")
+
+    if is_foreign:
+        flash(request, "Profil talent publie.", "success")
+    else:
+        flash(request, "Profil enregistre, en attente de revue (activez-le manuellement).", "success")
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -776,7 +984,12 @@ async def toggle_post(
         return RedirectResponse(url="/login", status_code=303)
     post = db.get(Post, post_id)
     if post:
-        post.is_active = not post.is_active
+        if post.review_status == "approved":
+            post.review_status = "masked"
+            post.is_active = False
+        elif post.review_status == "masked":
+            post.review_status = "approved"
+            post.is_active = True
         db.commit()
         flash(request, "Statut mis a jour.", "success")
     return RedirectResponse(url="/admin", status_code=303)

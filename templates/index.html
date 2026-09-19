@@ -42,53 +42,42 @@ nav ul li a:not(.btn-admin):hover::after{width:100%;}
 .btn-admin:hover{background:var(--navy-2);transform:translateY(-2px);box-shadow:var(--shadow-md);}
 
 /* ===== HERO ===== */
-.hero{position:relative;padding:72px 0 56px;overflow:hidden;background:
-  radial-gradient(circle at 0% 20%, var(--gold-tint) 0%, transparent 45%),
-  radial-gradient(circle at 100% 80%, var(--green-tint) 0%, transparent 45%),
-  linear-gradient(170deg, #FDFCFA 0%, var(--white) 100%);
-}
-.hero::before{content:'';position:absolute;top:-30%;right:-10%;width:60%;height:100%;background:radial-gradient(circle, rgba(201,151,46,.06) 0%, transparent 70%);pointer-events:none;}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--navy-tint);color:var(--navy-2);padding:6px 16px;border-radius:50px;font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:20px;}
+.hero{position:relative;min-height:calc(100vh - 77px);padding:96px 0 72px;overflow:hidden;display:flex;align-items:center;background-color:var(--navy);background-image:linear-gradient(90deg,rgba(7,23,42,.93) 0%,rgba(7,23,42,.82) 39%,rgba(7,23,42,.35) 72%,rgba(7,23,42,.28) 100%),url("{{ url_for('static', filename='images/aceuil.png') }}");background-size:cover,100% 100%;background-position:center,center;background-repeat:no-repeat;background-attachment:fixed;}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(7,23,42,.38),transparent 38%);pointer-events:none;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:var(--white);padding:6px 16px;border-radius:50px;font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:20px;backdrop-filter:blur(8px);}
 .hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite;}
 @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.3;}}
-.hero-grid{display:grid;grid-template-columns:1.2fr 0.8fr;gap:52px;align-items:center;}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,690px);gap:52px;align-items:center;}
 @media (max-width:900px){.hero-grid{grid-template-columns:1fr;gap:32px;}}
-.hero h2{font-size:48px;line-height:1.08;color:var(--navy);margin-bottom:16px;}
-.hero h2 .accent{color:var(--green);position:relative;}
-.hero h2 .accent::after{content:'';position:absolute;bottom:2px;left:0;width:100%;height:4px;background:var(--gold-tint);border-radius:4px;z-index:-1;}
-.hero p.lede{font-size:17px;color:var(--text-soft);max-width:540px;margin-bottom:32px;line-height:1.7;}
+.hero h2{font-size:52px;line-height:1.08;color:var(--white);margin-bottom:16px;text-shadow:0 3px 18px rgba(0,0,0,.2);}
+.hero h2 .accent{color:#F0C866;position:relative;}
+.hero h2 .accent::after{content:'';position:absolute;bottom:2px;left:0;width:100%;height:4px;background:rgba(240,200,102,.28);border-radius:4px;z-index:-1;}
+.hero p.lede{font-size:17px;color:rgba(255,255,255,.86);max-width:570px;margin-bottom:32px;line-height:1.75;text-shadow:0 1px 8px rgba(0,0,0,.25);}
 .hero-buttons{display:flex;gap:14px;flex-wrap:wrap;}
 .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 30px;border-radius:50px;text-decoration:none;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:.25s;font-family:'Inter',sans-serif;}
-.btn-primary{background:var(--navy);color:var(--white);box-shadow:var(--shadow-sm);}
-.btn-primary:hover{background:var(--navy-2);transform:translateY(-2px);box-shadow:var(--shadow-md);}
-.btn-secondary{background:var(--white);color:var(--navy);border:1.5px solid var(--gray);}
-.btn-secondary:hover{border-color:var(--navy);transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+.btn-primary{background:var(--gold);color:var(--white);box-shadow:var(--shadow-sm);}
+.btn-primary:hover{background:#D8A83E;transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.btn-secondary{background:var(--white);color:var(--navy);border:1.5px solid var(--white);box-shadow:0 8px 22px rgba(0,0,0,.13);}
+.btn-secondary:hover{background:#F3E8CD;color:var(--navy);border-color:#F3E8CD;transform:translateY(-2px);box-shadow:var(--shadow-md);}
 .btn-gold{background:var(--gold);color:var(--white);}
 .btn-gold:hover{background:var(--gold-2);transform:translateY(-2px);box-shadow:var(--shadow-md);}
 
 /* ===== STATS ===== */
-.stat-strip{display:flex;gap:48px;flex-wrap:wrap;padding-top:36px;margin-top:36px;border-top:1px solid var(--gray);}
+.stat-strip{display:flex;gap:48px;flex-wrap:wrap;padding-top:36px;margin-top:36px;border-top:1px solid rgba(255,255,255,.28);}
 .stat{display:flex;flex-direction:column;}
-.stat b{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:var(--navy);}
-.stat span{font-size:12.5px;color:var(--text-soft);letter-spacing:.01em;}
-
-/* ===== HERO IMAGE ===== */
-.hero-image-wrapper{position:relative;display:flex;justify-content:center;align-items:center;}
-.hero-image-wrapper .image-frame{position:relative;width:100%;max-width:420px;aspect-ratio:1/1;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-lg);background:var(--gray-light);}
-.hero-image-wrapper .image-frame img{width:100%;height:100%;object-fit:cover;transition:transform .5s;}
-.hero-image-wrapper .image-frame:hover img{transform:scale(1.02);}
-.image-frame .frame-accent{position:absolute;bottom:-12px;right:-12px;width:100px;height:100px;border-radius:50%;background:var(--gold-tint);z-index:-1;opacity:.4;}
-.image-frame .frame-accent-2{position:absolute;top:-12px;left:-12px;width:70px;height:70px;border-radius:50%;background:var(--green-tint);z-index:-1;opacity:.3;}
-.image-frame .badge-overlay{position:absolute;bottom:16px;left:16px;background:rgba(11,30,51,.85);backdrop-filter:blur(8px);color:white;padding:8px 16px;border-radius:50px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:8px;}
-.image-frame .badge-overlay .flag{font-size:16px;}
+.stat b{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:var(--white);}
+.stat span{font-size:12.5px;color:rgba(255,255,255,.74);letter-spacing:.01em;}
 
 /* ===== TRUST STRIP ===== */
-.trust-strip{background:var(--navy);color:var(--white);padding:40px 0;}
-.trust-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:28px;align-items:center;}
-.trust-item{display:flex;align-items:center;gap:14px;}
-.trust-icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid rgba(255,255,255,.05);}
-.trust-text h5{font-size:13px;font-weight:700;margin-bottom:2px;}
-.trust-text p{font-size:11px;opacity:.6;}
+.trust-strip{background:var(--navy);color:var(--white);padding:34px 0;}
+.trust-heading{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.52);margin-bottom:18px;}
+.trust-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);overflow:hidden;background:rgba(255,255,255,.035);}
+.trust-item{display:flex;align-items:center;gap:13px;min-height:88px;padding:18px 20px;border-right:1px solid rgba(255,255,255,.10);}
+.trust-item:last-child{border-right:0;}
+.trust-icon{width:38px;height:38px;border-radius:10px;background:rgba(201,151,46,.14);color:#E7BD64;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(201,151,46,.22);}
+.trust-icon svg{width:19px;height:19px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.trust-text h5{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
+.trust-text p{font-size:11.5px;line-height:1.45;color:rgba(255,255,255,.62);}
 
 /* ===== SECTIONS ===== */
 section{padding:60px 0;}
@@ -146,6 +135,22 @@ section{padding:60px 0;}
 .obs-empty{color:var(--text-soft);font-size:14px;font-style:italic;padding:20px 0;}
 
 /* ===== HOW IT WORKS ===== */
+.about-section{position:relative;overflow:hidden;background:var(--surface);}
+.about-section::before{content:'';position:absolute;width:460px;height:460px;border-radius:50%;right:-210px;top:-245px;background:var(--gold-tint);opacity:.72;pointer-events:none;}
+.about-intro{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr);gap:48px;align-items:start;margin-bottom:38px;position:relative;}
+.about-lede{font-family:'Fraunces',serif;font-size:27px;line-height:1.35;color:var(--navy);max-width:650px;}
+.about-copy{font-size:14px;color:var(--text-soft);line-height:1.8;padding-top:5px;}
+.about-copy p + p{margin-top:12px;}
+.about-principles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px;}
+.about-principle{background:var(--white);border:1px solid var(--gray);border-radius:var(--radius-sm);padding:17px 16px;}
+.about-principle strong{display:block;font-size:13px;color:var(--navy);margin-bottom:3px;}
+.about-principle span{display:block;font-size:11.5px;color:var(--text-soft);line-height:1.5;}
+.about-principle-icon{display:block;font-size:18px;margin-bottom:8px;}
+.about-cta{display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;margin-top:34px;padding:23px 26px;border-radius:var(--radius);background:var(--navy);color:var(--white);box-shadow:var(--shadow-md);}
+.about-cta h3{font-family:'Inter',sans-serif;font-size:16px;margin-bottom:3px;}
+.about-cta p{font-size:12.5px;opacity:.72;}
+.about-cta .btn{flex-shrink:0;background:var(--gold);color:var(--white);padding:11px 20px;}
+.about-cta .btn:hover{background:#D8A83E;}
 .how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;}
 .how-item{padding:28px;background:var(--white);border-radius:var(--radius-sm);border:1px solid var(--gray);transition:.25s;}
 .how-item:hover{border-color:var(--navy-tint);box-shadow:var(--shadow-sm);}
@@ -181,22 +186,29 @@ footer p.copyright{opacity:.4;font-size:12px;}
 .footer-poc{font-size:11.5px;opacity:.35;}
 
 /* ===== FLASH ===== */
-.flash-messages{padding:14px 0 0;}
-.flash-messages .flash{padding:11px 18px;border-radius:10px;margin:0 auto 10px;max-width:560px;font-weight:500;font-size:14px;text-align:center;}
+.flash-messages{padding:0;}
+.flash-messages .flash{padding:11px 18px;border-radius:10px;margin:14px auto 10px;max-width:560px;font-weight:500;font-size:14px;text-align:center;}
 .flash.success{background:var(--green-tint);color:#2C6B2C;}
 .flash.error{background:#FBEAEA;color:#A23B3B;}
 
 /* ===== RESPONSIVE ===== */
 @media (max-width:768px){
-  .hero h2{font-size:32px;}
-  .hero{padding:48px 0 36px;}
+  .hero h2{font-size:38px;}
+  .hero{min-height:calc(100vh - 77px);padding:64px 0 46px;background-attachment:scroll;background-size:cover,cover;background-position:center,61% center;}
   .hero-grid{gap:28px;}
   .stat-strip{gap:28px;}
   .stat b{font-size:24px;}
-  .hero-image-wrapper .image-frame{max-width:100%;aspect-ratio:4/3;}
   section{padding:40px 0;}
   .section-head h2{font-size:24px;}
+  .about-intro{grid-template-columns:1fr;gap:18px;}
+  .about-lede{font-size:23px;}
+  .about-principles{grid-template-columns:1fr;}
+  .about-cta{align-items:flex-start;flex-direction:column;padding:21px;}
+  .trust-grid{grid-template-columns:repeat(2,1fr);}
+  .trust-item:nth-child(2){border-right:0;}
+  .trust-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.10);}
 }
+@media (max-width:460px){.trust-grid{grid-template-columns:1fr;}.trust-item{border-right:0;border-bottom:1px solid rgba(255,255,255,.10);}.trust-item:last-child{border-bottom:0;}}
 </style>
 </head>
 <body>
@@ -214,7 +226,7 @@ footer p.copyright{opacity:.4;font-size:12px;}
     <nav>
       <ul>
         <li><a href="{{ url_for('home') }}">Accueil</a></li>
-        <li><a href="#opportunities">Opportunités</a></li>
+        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
         <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
         <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
         <li><a href="#about">À propos</a></li>
@@ -238,7 +250,7 @@ footer p.copyright{opacity:.4;font-size:12px;}
   <div class="container hero-grid">
     <div>
       <div class="hero-badge"><span class="dot"></span> Plateforme IA multi-agents</div>
-      <h2>Investisser au Maroc<br>
+      <h2>Investissez au Maroc</h2>
       <p class="lede">MRE AI vous aide à découvrir les meilleures opportunités d'investissement grâce à l'intelligence artificielle, avec des réponses sourcées, vérifiées et à jour.</p>
       <div class="hero-buttons">
         <a href="#opportunities" class="btn btn-primary">Découvrir les opportunités</a>
@@ -250,40 +262,30 @@ footer p.copyright{opacity:.4;font-size:12px;}
         <div class="stat"><b>4</b><span>Secteurs couverts</span></div>
       </div>
     </div>
-
-    <!-- ===== HERO IMAGE ===== -->
-    <div class="hero-image-wrapper">
-      <div class="image-frame">
-        <div class="frame-accent"></div>
-        <div class="frame-accent-2"></div>
-        <img src="{{ url_for('static', filename='images/aceuil.png') }}" alt="Culture marocaine - Accueil des MRE">
-        <div class="badge-overlay">
-          <span class="flag">🇲🇦</span>
-          Bienvenue au Maroc
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 
 <!-- ===== TRUST STRIP ===== -->
 <section class="trust-strip">
-  <div class="container trust-grid">
+  <div class="container">
+    <div class="trust-heading">Nos engagements</div>
+    <div class="trust-grid">
     <div class="trust-item">
-      <div class="trust-icon">✓</div>
+      <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7"/></svg></div>
       <div class="trust-text"><h5>Sources vérifiées</h5><p>Organismes officiels, RAG documenté</p></div>
     </div>
     <div class="trust-item">
-      <div class="trust-icon">🔒</div>
+      <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
       <div class="trust-text"><h5>Données protégées</h5><p>Aucune revente d'information</p></div>
     </div>
     <div class="trust-item">
-      <div class="trust-icon">🤖</div>
+      <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3M8.5 4.5l1.2 2.1M15.5 4.5l-1.2 2.1"/><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M8 12h.01M16 12h.01M8 16h8"/></svg></div>
       <div class="trust-text"><h5>Agents spécialisés</h5><p>Un agent expert par secteur</p></div>
     </div>
     <div class="trust-item">
-      <div class="trust-icon">🇲🇦</div>
+      <div class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s7-3.8 7-10V5l-7-2-7 2v6c0 6.2 7 10 7 10Z"/><path d="M9.5 12 11 13.5l3.5-4"/></svg></div>
       <div class="trust-text"><h5>100% dédié au Maroc</h5><p>Conçu pour la diaspora marocaine</p></div>
+    </div>
     </div>
   </div>
 </section>
@@ -327,53 +329,24 @@ footer p.copyright{opacity:.4;font-size:12px;}
   <div class="container">
     <div class="section-head">
       <div><div class="section-eyebrow">Sélection du moment</div><h2>Opportunités à la une</h2></div>
-      <a href="#opportunities" class="see-all">Voir toutes →</a>
+      <a href="{{ url_for('opportunities') }}" class="see-all">Voir toutes →</a>
     </div>
     <div class="opp-list">
-      <div class="opp-item">
-        <div class="opp-visual re"><span class="opp-tag">Immobilier</span></div>
-        <div class="opp-body">
-          <h4>Résidence AI Manar</h4>
-          <p class="loc">Casablanca</p>
-          <div class="opp-figures">
-            <div><span class="fig-label">Rendement</span><span class="rendement">7.8%</span></div>
-            <div><span class="fig-label">Montant min.</span><span class="montant">500 000 MAD</span></div>
-          </div>
+      {% for opportunity in opportunities %}
+      <article class="opp-item">
+        <div class="opp-visual {{ 're' if opportunity.sector == 'immobilier' else 'ag' if opportunity.sector == 'agriculture' else 'ind' if opportunity.sector == 'industrie' else 'tou' }}">
+          <span class="opp-tag">{{ opportunity.sector|replace('_', ' ')|title }}</span>
         </div>
-      </div>
-      <div class="opp-item">
-        <div class="opp-visual ag"><span class="opp-tag">Agriculture</span></div>
         <div class="opp-body">
-          <h4>Projet Agricole Durabilité</h4>
-          <p class="loc">Meknès</p>
-          <div class="opp-figures">
-            <div><span class="fig-label">Rendement</span><span class="rendement">9.2%</span></div>
-            <div><span class="fig-label">Montant min.</span><span class="montant">250 000 MAD</span></div>
-          </div>
+          <h4>{{ opportunity.title }}</h4>
+          <p class="loc">{{ opportunity.region or 'Région non précisée dans la source' }}</p>
+          <p>{{ opportunity.excerpt }}</p>
+          <small>Source RAG : {{ opportunity.source }}</small>
         </div>
-      </div>
-      <div class="opp-item">
-        <div class="opp-visual ind"><span class="opp-tag">Industrie</span></div>
-        <div class="opp-body">
-          <h4>Usine Textile Innovante</h4>
-          <p class="loc">Tanger</p>
-          <div class="opp-figures">
-            <div><span class="fig-label">Rendement</span><span class="rendement">8.1%</span></div>
-            <div><span class="fig-label">Montant min.</span><span class="montant">1 000 000 MAD</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="opp-item">
-        <div class="opp-visual tou"><span class="opp-tag">Tourisme</span></div>
-        <div class="opp-body">
-          <h4>Éco-Resort Taghazout</h4>
-          <p class="loc">Agadir</p>
-          <div class="opp-figures">
-            <div><span class="fig-label">Rendement</span><span class="rendement">10.3%</span></div>
-            <div><span class="fig-label">Montant min.</span><span class="montant">750 000 MAD</span></div>
-          </div>
-        </div>
-      </div>
+      </article>
+      {% else %}
+      <p class="obs-empty">Aucune opportunité exploitable n'est disponible dans les documents RAG indexés.</p>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -409,15 +382,32 @@ footer p.copyright{opacity:.4;font-size:12px;}
   </div>
 </section>
 
-<!-- ===== HOW IT WORKS ===== -->
-<section class="opp-section" id="about">
+<!-- ===== ABOUT ===== -->
+<section class="about-section" id="about">
   <div class="container">
-    <div class="section-eyebrow">Notre méthode</div>
-    <div class="section-head"><h2>Comment ça marche</h2></div>
+    <div class="section-eyebrow">À propos de MRE AI</div>
+    <div class="section-head"><h2>Investir au Maroc avec plus de clarté</h2></div>
+    <div class="about-intro">
+      <p class="about-lede">MRE AI rapproche les Marocains du Monde des informations utiles, des opportunités concrètes et des compétences qui font avancer le Maroc.</p>
+      <div class="about-copy">
+        <p>Notre plateforme réunit un assistant IA sectoriel, une sélection d’opportunités d’investissement et un observatoire des talents MRE.</p>
+        <p>Elle ne remplace ni un conseil juridique, ni un conseil financier. Elle vous aide à mieux comprendre, à identifier les bonnes ressources et à préparer vos démarches avec confiance.</p>
+      </div>
+    </div>
+    <div class="about-principles">
+      <div class="about-principle"><span class="about-principle-icon">◈</span><strong>Informations sourcées</strong><span>Les réponses s’appuient sur les documents indexés et leurs sources sont indiquées.</span></div>
+      <div class="about-principle"><span class="about-principle-icon">✓</span><strong>Opportunités expliquées</strong><span>Les dossiers publiés sont analysés afin de distinguer une réelle occasion d’investissement.</span></div>
+      <div class="about-principle"><span class="about-principle-icon">↗</span><strong>Un pont avec la diaspora</strong><span>Les compétences MRE sont mises en lumière pour créer des connexions et des projets utiles.</span></div>
+    </div>
+    <div class="section-head" style="margin-top:46px;"><div><div class="section-eyebrow">Notre méthode</div><h2>Comment ça marche</h2></div></div>
     <div class="how-grid">
-      <div class="how-item"><div class="how-num">1</div><h4>Posez votre question</h4><p>En langage naturel, sur n'importe quel secteur d'investissement.</p></div>
-      <div class="how-item"><div class="how-num">2</div><h4>Le Router Agent identifie le bon domaine</h4><p>Votre question est orientée vers l'agent spécialisé correspondant.</p></div>
-      <div class="how-item"><div class="how-num">3</div><h4>Vous recevez une réponse sourcée</h4><p>Basée sur des sources vérifiées, avec les organismes compétents cités.</p></div>
+      <div class="how-item"><div class="how-num">1</div><h4>Choisissez votre besoin</h4><p>Explorez une opportunité, consultez l’observatoire ou posez directement votre question.</p></div>
+      <div class="how-item"><div class="how-num">2</div><h4>L’IA consulte le bon secteur</h4><p>Votre demande est orientée vers les documents et les informations utiles au domaine concerné.</p></div>
+      <div class="how-item"><div class="how-num">3</div><h4>Décidez avec les sources</h4><p>Vous obtenez une réponse claire, ses références et les prochaines démarches à envisager.</p></div>
+    </div>
+    <div class="about-cta">
+      <div><h3>Une question sur votre projet au Maroc ?</h3><p>Commencez par dialoguer avec l’assistant IA spécialisé.</p></div>
+      <a href="{{ url_for('chat_page') }}" class="btn">Parler à l’assistant →</a>
     </div>
   </div>
 </section>

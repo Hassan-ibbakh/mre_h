@@ -42,7 +42,7 @@ PDF → clean_pdf.py → .md propre → ingest.py → ChromaDB (bge-m3) → LLM 
 ### 3.1 Pipeline RAG juridique
 1. **Ingestion** : `clean_pdf.py` nettoie les PDFs (numéros de page, en-têtes/pieds répétitifs, tables des matières, artefacts OCR) et écrit des `.md` avec marqueurs `<!-- PAGE N -->`. `ingest.py` découpe (3000/300), embarque en local avec `BAAI/bge-m3` (1024 dims, CPU, FR+AR) et stocke dans ChromaDB. **Idempotent** : un fichier modifié remplace ses chunks sans dupliquer ; un `.md` prévaut sur son `.pdf`.
 2. **Retrieval** : `rag_engine.retrieve()` filtre par métadonnée `sector == "immobilier"`, interroge par `query_embeddings` (jamais `query_texts`, dimensions incompatibles) et écarte les chunks au-delà du seuil de distance cosine (`SIMILARITY_THRESHOLD`, défaut 0.60).
-3. **Génération** : `main._stream_llm()` envoie prompt système + contexte à OpenRouter (`poolside/laguna-s-2.1:free`) en streaming et relaye chaque token en SSE (`sources` → `token`* → `done` | `error`).
+3. **Génération** : `main._stream_llm()` envoie prompt système + contexte à OpenRouter (`stealth/ox-alpha`) en streaming et relaye chaque token en SSE (`sources` → `token`* → `done` | `error`).
 
 ### 3.2 Interface web & compat
 - `url_for` Flask re-créé en global Jinja (`_ENDPOINT_URLS`), `get_flashed_messages` re-créé à partir de la session.
