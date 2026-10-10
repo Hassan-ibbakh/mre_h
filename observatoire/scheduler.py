@@ -28,7 +28,21 @@ def sync_talents_dynamic(db: Session) -> int:
         title = item["title"].strip()
         if not title or title.lower() in existing_titles:
             continue
-        review_status = classify_mre_review_status(item.get("confidence"), item.get("country"))
+        raw_confidence_score = item.get("confidence_score")
+        if raw_confidence_score is not None:
+            try:
+                confidence_score = max(0, min(100, round(float(raw_confidence_score))))
+            except (TypeError, ValueError):
+                confidence_score = None
+        else:
+            try:
+                raw_confidence = float(item.get("confidence"))
+                confidence_score = round(raw_confidence * 100 if raw_confidence <= 1 else raw_confidence)
+                confidence_score = max(0, min(100, confidence_score))
+            except (TypeError, ValueError):
+                confidence_score = None
+
+        review_status = classify_mre_review_status(confidence_score, item.get("country"))
         post = Post(
             title=title,
             sector=item.get("sector") or "other",
@@ -38,6 +52,7 @@ def sync_talents_dynamic(db: Session) -> int:
             years_experience=item.get("years_experience"),
             is_active=review_status == "approved",
             review_status=review_status,
+            confidence_score=confidence_score,
             source_url=item.get("url", ""),
             source_name=item.get("source", "Source externe"),
             image_url=item.get("image_url", ""),
