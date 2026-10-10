@@ -1,3 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mre-ai"
+version = "1.4.0"
+description = "FastAPI assistant for MRE projects and investment opportunities in Morocco"
+requires-python = ">=3.11,<3.15"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools]
+py-modules = [
+	"app",
+	"auth",
+	"clean_chromadb",
+	"clean_pdf",
+	"config",
+	"database",
+	"ingest",
+	"ingest_invest",
+	"main",
+	"models",
+	"rag_engine",
+	"talent_sync",
+]
+
+[tool.setuptools.packages.find]
+include = ["observatoire*"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

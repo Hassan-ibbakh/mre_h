@@ -13,6 +13,7 @@ keys/
 
 # ===== Environnement Python =====
 venv/
+.egg-info/
 __pycache__/
 *.pyc
 *.pyo
