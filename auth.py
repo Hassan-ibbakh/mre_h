@@ -27,6 +27,28 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
+def user_has_private_access(user: User | None) -> bool:
+    if user is None:
+        return False
+    if user.role == "admin":
+        return True
+    return user.status in {"active", "free"}
+
+
+def user_has_private_access_as_message(user: User | None) -> str | None:
+    if user is None:
+        return "Connexion requise."
+    if user.role == "admin":
+        return None
+    if user.status == "pending":
+        return "Votre demande d'accès est en attente de validation par l'administration."
+    if user.status in {"blocked", "expired", "cancelled"}:
+        return "Votre accès n'est plus autorisé. Contactez l'administration."
+    if user.status not in {"active", "free"}:
+        return "Votre accès est actuellement indisponible."
+    return None
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
     """Dependance FastAPI : retourne le User connecte ou None (ne bloque
     jamais -- a la route de decider quoi faire si None)."""

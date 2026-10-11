@@ -1,0 +1,158 @@
+@keyframes mre-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mre-soft-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+html { scroll-behavior: smooth; }
+
+body > header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 14px rgba(11,30,51,.045);
+}
+
+body > header nav a,
+body > nav.public-nav a {
+  border-radius: 6px;
+  transition: color .18s ease, background-color .18s ease, transform .18s ease;
+}
+
+body > header nav a:focus-visible,
+body > nav.public-nav a:focus-visible {
+  outline-offset: 4px;
+}
+
+.msg,
+.ai-answer.active {
+  animation: mre-soft-enter .24s cubic-bezier(.2,.7,.3,1) both;
+}
+
+body > header,
+.hero-grid,
+.obs-hero .container,
+.chat-shell,
+.page-intro,
+.intro,
+.panel,
+.content > .card,
+.card:not(.sector-card):not(.opp-item):not(.expert-card):not(.talent-card) {
+  animation: mre-enter .55s cubic-bezier(.2,.7,.3,1) both;
+}
+
+.stat-card,
+.sector-card,
+.opp-item,
+.expert-card,
+.talent-card,
+.how-item,
+.team-card,
+.search-card,
+.about-cta {
+  animation: mre-soft-enter .5s cubic-bezier(.2,.7,.3,1) both;
+}
+
+.sectors-grid > :nth-child(2),
+.opp-list > :nth-child(2),
+.obs-preview-grid > :nth-child(2),
+.directory-grid > :nth-child(2),
+.how-grid > :nth-child(2),
+.team-grid > :nth-child(2),
+.stats-row > :nth-child(2) { animation-delay: .06s; }
+
+.sectors-grid > :nth-child(3),
+.opp-list > :nth-child(3),
+.obs-preview-grid > :nth-child(3),
+.directory-grid > :nth-child(3),
+.how-grid > :nth-child(3),
+.team-grid > :nth-child(3),
+.stats-row > :nth-child(3) { animation-delay: .12s; }
+
+.sectors-grid > :nth-child(4),
+.opp-list > :nth-child(4),
+.obs-preview-grid > :nth-child(4),
+.directory-grid > :nth-child(4),
+.how-grid > :nth-child(4),
+.team-grid > :nth-child(4),
+.stats-row > :nth-child(4) { animation-delay: .18s; }
+
+.stats-row > :nth-child(5) { animation-delay: .24s; }
+
+a, button, input, select, textarea { transition-duration: .18s; }
+:focus-visible { outline: 2px solid #397C68; outline-offset: 3px; }
+
+button:not(:disabled),
+.btn,
+.btn-admin,
+.nav-cta,
+.apply-link {
+  transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .18s ease, background-color .18s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline-color: #397C68;
+  box-shadow: 0 0 0 3px rgba(57,124,104,.12);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  button:not(:disabled):hover,
+  .btn:hover,
+  .btn-admin:hover,
+  .nav-cta:hover,
+  .apply-link:hover {
+    transform: translateY(-1px);
+  }
+
+  .sector-card:hover,
+  .opp-item:hover,
+  .expert-card:hover,
+  .talent-card:hover,
+  .how-item:hover,
+  .team-card:hover {
+    transition-timing-function: cubic-bezier(.2,.7,.3,1);
+  }
+
+  body > header nav a:not(.btn-admin):not(.nav-cta):hover,
+  body > nav.public-nav a:not(.nav-cta):hover {
+    color: #397C68;
+  }
+}
+
+@media (max-width: 760px) {
+  body > header {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  body > header .header-inner {
+    justify-content: center;
+    gap: 10px 18px;
+  }
+
+  body > header nav,
+  body > header nav ul {
+    justify-content: center;
+    gap: 8px 14px;
+  }
+
+  body > header nav a {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

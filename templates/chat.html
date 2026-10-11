@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Assistant IA — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -76,9 +77,22 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
 .chat-input-area button:hover{background:var(--navy-2);}
 
 @media (max-width:800px){
-  .chat-shell{flex-direction:column;margin:0;border-radius:0;border:none;}
-  .chat-sidebar{width:100%;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--gray);}
+  .chat-page{padding:14px 16px 18px;}
+  .chat-shell{flex-direction:column;margin:0 auto;border-radius:10px;min-height:calc(100dvh - 124px);}
+  .chat-sidebar{display:grid;width:100%;grid-template-columns:minmax(0,1fr);gap:8px;flex-direction:column;padding:12px 14px;border-right:none;border-bottom:1px solid var(--gray);}
+  .chat-sidebar-label{display:none;}
+  .active-agent-card{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:8px 10px;}
+  .agent-about{max-width:260px;margin:0;font-size:11px;}
+  .sector-switch-label{margin:2px 0 0;}
+  .sector-switch{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
+  .sector-btn{flex:0 0 auto;}
+  .chat-messages{padding:18px;}
+  .msg{max-width:88%;}
+  .quick-replies{padding:12px 16px;}
+  .chat-input-area{padding:12px 16px;}
+  .chat-input-area input{min-width:0;font-size:16px;}
 }
+@media(max-width:480px){.chat-page{padding:0;}.chat-shell{min-height:calc(100dvh - 112px);border:0;border-radius:0;}.chat-sidebar{padding:10px 12px;}.active-agent-card{align-items:flex-start;flex-direction:column;gap:5px;}.agent-about{max-width:none;}.chat-header{padding:14px 16px;}.chat-messages{padding:14px;}.msg{max-width:94%;}}
 </style>
 </head>
 <body>

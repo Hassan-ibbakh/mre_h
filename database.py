@@ -17,7 +17,11 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(200), nullable=False)
+    full_name = Column(String(150), nullable=True)
+    role = Column(String(30), nullable=False, default="user")
+    status = Column(String(20), nullable=False, default="pending")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class ProfileCache(Base):
@@ -109,17 +113,35 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
     with engine.begin() as connection:
-        table_info = connection.execute(text("PRAGMA table_info(post)")).fetchall()
-        columns = {row[1] for row in table_info}
-        if "review_status" not in columns:
+        post_info = connection.execute(text("PRAGMA table_info(post)")).fetchall()
+        post_columns = {row[1] for row in post_info}
+        if "review_status" not in post_columns:
             connection.execute(
                 text("ALTER TABLE post ADD COLUMN review_status VARCHAR(20) NOT NULL DEFAULT 'pending'")
             )
-        if "confidence_score" not in columns:
+        if "confidence_score" not in post_columns:
             connection.execute(text("ALTER TABLE post ADD COLUMN confidence_score INTEGER"))
         connection.execute(
             text("UPDATE post SET review_status = 'approved' "
                  "WHERE is_active = 1 AND review_status = 'pending'")
+        )
+
+        user_info = connection.execute(text("PRAGMA table_info(user)")).fetchall()
+        user_columns = {row[1] for row in user_info}
+        for column_name, ddl in {
+            "full_name": "ALTER TABLE user ADD COLUMN full_name VARCHAR(150)",
+            "role": "ALTER TABLE user ADD COLUMN role VARCHAR(30) NOT NULL DEFAULT 'user'",
+            "status": "ALTER TABLE user ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'",
+            "updated_at": "ALTER TABLE user ADD COLUMN updated_at DATETIME",
+        }.items():
+            if column_name not in user_columns:
+                connection.execute(text(ddl))
+
+        connection.execute(
+            text("UPDATE user SET role = 'user' WHERE role IS NULL OR role = ''")
+        )
+        connection.execute(
+            text("UPDATE user SET status = 'pending' WHERE status IS NULL OR status = ''")
         )
 
 
@@ -242,11 +264,25 @@ def create_default_admin_if_missing(default_email: str, default_password: str):
     import bcrypt
     db = SessionLocal()
     try:
-        if db.query(User).filter(User.email == default_email).first():
-            return
+        admin = db.query(User).filter(User.email == default_email).first()
+        if admin:
+            admin.role = "admin"
+            admin.status = "active"
+            admin.full_name = admin.full_name or "Administrateur"
+            db.commit()
+            return admin
+
         hashed = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-        db.add(User(email=default_email, password_hash=hashed))
+        admin = User(
+            email=default_email,
+            password_hash=hashed,
+            full_name="Administrateur",
+            role="admin",
+            status="active",
+        )
+        db.add(admin)
         db.commit()
+        return admin
     finally:
         db.close()
 

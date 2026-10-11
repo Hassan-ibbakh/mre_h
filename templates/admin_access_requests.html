@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demandes d'accès — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#173641;--navy-2:#245462;--green:#397C68;--green-tint:#E6F2EC;--gold:#B77C35;--gold-tint:#F7EFDF;--red:#A6463C;--surface:#F4F6F3;--line:#E2E9E4;--text:#1D3034;--muted:#617276;--white:#fff;--shadow:0 3px 16px rgba(23,54,65,.045);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{min-height:100vh;background:var(--surface);color:var(--text);font:14px/1.5 'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none;}
+.layout{display:flex;min-height:100vh;}
+.sidebar{position:sticky;top:0;display:flex;flex:0 0 238px;flex-direction:column;width:238px;height:100vh;padding:20px 14px;background:var(--navy);color:#fff;}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 30px;}
+.brand img{width:auto;height:30px;}
+.brand strong{display:block;font:600 15px 'Fraunces',Georgia,serif;}
+.brand small{font-size:10px;opacity:.58;}
+.nav-item{display:flex;align-items:center;gap:11px;margin-bottom:3px;padding:10px 12px;border-radius:7px;color:rgba(255,255,255,.72);font-size:13px;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.12);box-shadow:inset 3px 0 #D7A450;color:#fff;}
+.nav-count{margin-left:auto;min-width:21px;padding:2px 6px;border-radius:10px;background:#D7A450;color:var(--navy);text-align:center;font-size:10px;font-weight:700;}
+.sidebar-bottom{margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);}
+.main{flex:1;min-width:0;}
+.topbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;min-height:60px;padding:14px 34px;border-bottom:1px solid var(--line);background:var(--white);}
+.topbar h1{font:500 19px 'Fraunces',Georgia,serif;color:var(--navy);}
+.who{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;}
+.who-avatar{display:grid;width:29px;height:29px;place-items:center;border-radius:50%;background:#E8F0EF;color:var(--navy);font-weight:700;}
+.content{width:min(100%,1200px);margin:0 auto;padding:30px 34px 60px;}
+.flash{margin-bottom:18px;padding:11px 15px;border-radius:7px;background:var(--green-tint);color:#2C6B50;font-weight:600;}
+.flash.error{background:#F8EAE7;color:var(--red);}
+.breadcrumb{margin-bottom:10px;color:var(--muted);font-size:12px;}
+.breadcrumb a:hover{color:var(--green);text-decoration:underline;}
+.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:23px;padding-bottom:21px;border-bottom:1px solid var(--line);}
+.kicker{margin-bottom:6px;color:var(--green);font-size:10px;font-weight:700;letter-spacing:.12em;}
+h2{font:500 28px/1.2 'Fraunces',Georgia,serif;color:var(--navy);}
+.intro p{margin-top:6px;color:var(--muted);font-size:13px;}
+.pending-summary{display:flex;align-items:center;gap:10px;white-space:nowrap;color:var(--muted);font-size:12px;}
+.pending-summary strong{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:var(--gold-tint);color:#80551F;font-size:13px;}
+.panel{overflow:hidden;border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:9px;background:var(--white);box-shadow:var(--shadow);}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 20px;border-bottom:1px solid var(--line);}
+.panel-head h3{font:500 17px 'Fraunces',Georgia,serif;color:var(--navy);}
+.panel-head span{color:var(--muted);font-size:12px;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;min-width:760px;border-collapse:collapse;}
+th{padding:11px 16px;background:#F8FAF8;color:#738184;text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;}
+td{padding:14px 16px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle;}
+tbody tr:hover{background:#FAFCFA;}
+.name{font-weight:600;color:var(--navy);}
+.email{color:var(--muted);}
+.status{display:inline-flex;padding:4px 8px;border-radius:5px;background:#EEF2EF;color:#60706C;font-size:11px;font-weight:700;}
+.status.pending{background:var(--gold-tint);color:#80551F;}
+.status.active,.status.free{background:var(--green-tint);color:#2C6B50;}
+.status.blocked,.status.expired,.status.cancelled{background:#F8EAE7;color:var(--red);}
+.account-form{display:flex;align-items:center;gap:7px;min-width:255px;}
+select{min-width:135px;padding:8px 10px;border:1px solid #D8E1DC;border-radius:6px;background:#fff;color:var(--text);font:500 12px 'DM Sans',sans-serif;}
+button{padding:8px 11px;border:0;border-radius:6px;background:var(--navy);color:#fff;font:600 12px 'DM Sans',sans-serif;cursor:pointer;transition:background .15s ease;}
+button:hover{background:var(--navy-2);}
+.empty{padding:50px 20px;text-align:center;}
+.empty-mark{display:grid;width:42px;height:42px;margin:0 auto 13px;place-items:center;border-radius:50%;background:var(--green-tint);color:var(--green);font-size:20px;}
+.empty h3{font:500 19px 'Fraunces',Georgia,serif;color:var(--navy);}
+.empty p{margin:5px 0 18px;color:var(--muted);font-size:13px;}
+.back-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;color:var(--navy);font-size:12px;font-weight:600;}
+.back-link:hover{border-color:var(--green);background:#F7FAF8;}
+@media(max-width:1000px){table{min-width:620px;table-layout:fixed;}th:nth-child(1){width:28%;}th:nth-child(2){width:14%;}th:nth-child(3){width:19%;}th:nth-child(4){width:39%;}.account-form{min-width:0;flex-wrap:wrap;}.account-form select{min-width:0;flex:1 1 110px;}.email{overflow-wrap:anywhere;}}
+@media(max-width:760px){.layout{flex-direction:column;}.sidebar{position:sticky;z-index:3;top:0;flex:0 0 auto;flex-direction:row;align-items:center;width:100%;height:auto;padding:10px 12px;overflow-x:auto;}.brand{flex:0 0 auto;padding:0 12px 0 0;}.brand small{display:none;}.nav-item{flex:0 0 auto;margin:0;padding:9px 10px;white-space:nowrap;}.sidebar-bottom{flex:0 0 auto;margin:0 0 0 auto;padding:0 0 0 8px;border:0;}.topbar{padding:12px 16px;}.content{padding:22px 16px 40px;}.intro{align-items:flex-start;flex-direction:column;gap:12px;}h2{font-size:24px;}.pending-summary{align-self:flex-start;}}
+@media(max-width:420px){.who span{max-width:155px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.content{padding-right:12px;padding-left:12px;}.panel-head{padding:15px;}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI">
+      <div><strong>MRE AI</strong><small>Intelligence au service du pays</small></div>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="nav-item"><span aria-hidden="true">▦</span> Tableau de bord</a>
+    <a href="{{ url_for('admin_access_requests') }}" class="nav-item active"><span aria-hidden="true">✉</span> Demandes d'accès{% if pending_count %}<span class="nav-count">{{ pending_count }}</span>{% endif %}</a>
+    <a href="{{ url_for('home') }}" class="nav-item"><span aria-hidden="true">⌂</span> Accueil</a>
+    <a href="{{ url_for('opportunities') }}" class="nav-item"><span aria-hidden="true">◈</span> Opportunités</a>
+    <a href="{{ url_for('chat_page') }}" class="nav-item"><span aria-hidden="true">✦</span> Assistant IA</a>
+    <a href="{{ url_for('observatory') }}" class="nav-item"><span aria-hidden="true">♧</span> Observatoire</a>
+    <div class="sidebar-bottom"><a href="{{ url_for('logout') }}" class="nav-item"><span aria-hidden="true">⏻</span> Déconnexion</a></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1>Gestion des accès</h1>
+      {% if user %}<div class="who"><span class="who-avatar">{{ user.email[0] | upper }}</span><span>{{ user.email }}</span></div>{% endif %}
+    </header>
+    <section class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="breadcrumb"><a href="{{ url_for('admin_dashboard') }}">Tableau de bord</a> / Demandes d'accès</div>
+      <div class="intro">
+        <div>
+          <div class="kicker">ADMINISTRATION · COMPTES UTILISATEURS</div>
+          <h2>Demandes d'accès</h2>
+          <p>Examinez les inscriptions et choisissez le niveau d'accès de chaque compte.</p>
+        </div>
+        <div class="pending-summary"><strong>{{ pending_count }}</strong><span>demande{{ 's' if pending_count != 1 else '' }} en attente</span></div>
+      </div>
+
+      <section class="panel" aria-labelledby="accounts-heading">
+        <div class="panel-head">
+          <h3 id="accounts-heading">Comptes utilisateurs</h3>
+          <span>{{ users|length }} compte{{ 's' if users|length != 1 else '' }}</span>
+        </div>
+        {% if users %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Utilisateur</th><th>Inscription</th><th>Accès actuel</th><th>Décision</th></tr></thead>
+            <tbody>
+              {% for account in users %}
+              <tr>
+                <td><div class="name">{{ account.full_name or account.email }}</div><div class="email">{{ account.email }}</div></td>
+                <td>{{ account.created_at.strftime('%d/%m/%Y') if account.created_at else '—' }}</td>
+                <td><span class="status {{ account.status }}">{{ 'En attente' if account.status == 'pending' else ('Actif' if account.status == 'active' else ('Accès gratuit' if account.status == 'free' else ('Expiré' if account.status == 'expired' else ('Annulé' if account.status == 'cancelled' else account.status|capitalize)))) }}</span></td>
+                <td>
+                  <form class="account-form" method="POST" action="{{ url_for('update_user_status', user_id=account.id) }}">
+                    <select name="status" aria-label="Statut d'accès pour {{ account.email }}">
+                      <option value="pending" {% if account.status == 'pending' %}selected{% endif %}>En attente</option>
+                      <option value="active" {% if account.status == 'active' %}selected{% endif %}>Actif</option>
+                      <option value="free" {% if account.status == 'free' %}selected{% endif %}>Accès gratuit</option>
+                      <option value="blocked" {% if account.status == 'blocked' %}selected{% endif %}>Bloqué</option>
+                      <option value="expired" {% if account.status == 'expired' %}selected{% endif %}>Expiré</option>
+                      <option value="cancelled" {% if account.status == 'cancelled' %}selected{% endif %}>Annulé</option>
+                    </select>
+                    <button type="submit">Enregistrer</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty">
+          <div class="empty-mark" aria-hidden="true">✓</div>
+          <h3>Aucune demande pour le moment</h3>
+          <p>Les nouvelles inscriptions apparaîtront ici pour validation.</p>
+          <a class="back-link" href="{{ url_for('admin_dashboard') }}">← Retour au tableau de bord</a>
+        </div>
+        {% endif %}
+      </section>
+    </section>
+  </main>
+</div>
+</body>
+</html>

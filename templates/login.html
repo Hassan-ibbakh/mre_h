@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Connexion — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -21,10 +22,10 @@ body{
 }
 .corner{position:absolute;width:120px;height:120px;opacity:.5;}
 .corner.tl{top:-10px;left:-10px;}
-.corner.br{bottom:-10px;right:-10px;transform:rotate(180deg);}
+.corner.br{bottom:-10px;right:0;transform:rotate(180deg);}
 .public-nav{position:fixed;top:18px;right:28px;z-index:3;display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;}
 .public-nav a{color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;}.public-nav a:hover{color:var(--gold);}.public-nav .nav-cta{background:var(--navy);color:var(--white);padding:8px 14px;border-radius:20px;}.public-nav .nav-cta:hover{color:var(--white);background:var(--navy-2);}
-@media(max-width:760px){.public-nav{position:static;justify-content:center;width:100%;margin-bottom:22px;gap:10px}.public-nav a:not(.nav-cta){display:none;}body{display:block;padding-top:20px}.card{margin:auto;}}
+@media(max-width:760px){.public-nav{position:static;justify-content:flex-start;flex-wrap:nowrap;width:100%;max-width:100%;margin-bottom:22px;gap:10px;overflow-x:auto;padding:0 4px 8px;scrollbar-width:thin}.public-nav a{flex:0 0 auto;white-space:nowrap}body{display:block;padding-top:20px}.card{margin:auto;}}
 .card{
   background:var(--white);width:100%;max-width:400px;padding:40px 36px;
   border-radius:18px;border:1px solid var(--gray);box-shadow:0 24px 60px rgba(11,30,51,.1);

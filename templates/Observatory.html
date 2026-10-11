@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Observatoire des Compétences — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -150,6 +151,15 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
 footer{background:var(--navy);color:var(--white);padding:36px 0;}
 .footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
 footer p.copyright{opacity:.55;font-size:12.5px;}
+@media(max-width:700px){
+  .container{padding-right:16px;padding-left:16px;}
+  .obs-hero{padding:34px 0 26px;}
+  .obs-hero h1{font-size:28px;}
+  .search-card{padding:14px;}
+  .search-row{flex-direction:column;}
+  .search-row input,.search-row button{width:100%;min-width:0;}
+  .search-row button{min-height:42px;}
+}
 </style>
 </head>
 <body>

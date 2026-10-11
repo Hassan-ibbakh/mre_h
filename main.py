@@ -69,8 +69,15 @@ from rag_engine import get_rag_engine, get_rag_opportunities
 # ---------------------------------------------------------------------------
 # Observatoire des Talents MRE
 # ---------------------------------------------------------------------------
-from database import Post, User, classify_mre_review_status, get_db, init_db
-from auth import get_current_user, hash_password, verify_password, flash
+from database import Post, User, classify_mre_review_status, create_default_admin_if_missing, get_db, init_db
+from auth import (
+    flash,
+    get_current_user,
+    hash_password,
+    user_has_private_access,
+    user_has_private_access_as_message,
+    verify_password,
+)
 from talent_sync import sync_talents_dynamic
 from ingest import ingest_path
 from observatoire.observatory_agent import build_observatory_agent
@@ -100,23 +107,43 @@ _ENDPOINT_URLS = {
     "register": "/register",
     "logout": "/logout",
     "admin_dashboard": "/admin",
+    "admin_access_requests": "/admin/access-requests",
     "add_post": "/admin/add",
     "toggle_post": "/admin/toggle",
     "delete_post": "/admin/delete",
+    "update_user_status": "/admin/users/{user_id}/status",
     "sync_talents_admin": "/admin/talents/sync",
     "ingest_investment_admin": "/admin/investment/ingest",
 }
 
 
 def url_for(endpoint: str, **values: str) -> str:
-    """Équivalent de `flask.url_for` pour les templates Jinja historiques."""
+    """Équivalent de `flask.url_for` pour les templates Jinja historiques.
+
+    Supporte à la fois les URLs statiques et les routes avec paramètres de chemin
+    (ex. /admin/users/2/status) ainsi que les arguments de requête.
+    """
     if endpoint == "static":
         return f"/static/{values.get('filename', '')}"
+
     base = _ENDPOINT_URLS.get(endpoint, "#")
-    if values:
-        query = "&".join(f"{key}={val}" for key, val in values.items())
-        return f"{base}?{query}"
-    return base
+    if not values:
+        return base
+
+    path = base
+    query_params: list[str] = []
+
+    for key, val in values.items():
+        placeholder = "{" + key + "}"
+        if placeholder in path:
+            path = path.replace(placeholder, str(val))
+        else:
+            query_params.append(f"{key}={val}")
+
+    if query_params:
+        separator = "?" if "?" not in path else "&"
+        return f"{path}{separator}{'&'.join(query_params)}"
+    return path
 
 
 templates.env.globals["url_for"] = url_for
@@ -255,6 +282,10 @@ async def lifespan(app: FastAPI):
     ce réglage."""
     # ----- Observatoire : DB + scheduler -----
     init_db()
+    if settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD:
+        create_default_admin_if_missing(settings.ADMIN_EMAIL, settings.ADMIN_PASSWORD)
+    else:
+        logger.warning("Admin bootstrap skipped; configure ADMIN_EMAIL and ADMIN_PASSWORD to create the initial admin.")
     app.state.stop_sync_event = None
     if settings.ENABLE_DAILY_SYNC:
         app.state.stop_sync_event = start_daily_sync(sync_talents_dynamic)  # toutes les 24h, thread daemon
@@ -393,6 +424,24 @@ def _build_rag_prompt(query: str, sector: str | None = None) -> tuple[str, list[
     prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, sector_label=sector_label)
     sources = [{"source": c.source, "page": c.page} for c in chunks]
     return prompt, sources
+
+
+def _require_private_access(request: Request, current_user: User | None) -> RedirectResponse | None:
+    """Bloque la page si le visiteur n'a pas un accès autorisé."""
+    if current_user is None:
+        flash(request, "Connectez-vous pour accéder à cette page.", "error")
+        return RedirectResponse(url="/login", status_code=303)
+
+    if current_user.role == "admin":
+        return None
+
+    if not user_has_private_access(current_user):
+        message = user_has_private_access_as_message(current_user)
+        if message:
+            flash(request, message, "error")
+        return RedirectResponse(url="/login", status_code=303)
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -785,13 +834,25 @@ async def home(
 
 
 @app.get("/chat")
-async def chat_page(request: Request):
-    return templates.TemplateResponse(request=request, name="chat.html", context={})
+async def chat_page(
+    request: Request,
+    current_user: User | None = Depends(get_current_user),
+):
+    blocked = _require_private_access(request, current_user)
+    if blocked:
+        return blocked
+    return templates.TemplateResponse(request=request, name="chat.html", context={"user": current_user})
 
 
 @app.get("/opportunities")
-async def opportunities_page(request: Request):
+async def opportunities_page(
+    request: Request,
+    current_user: User | None = Depends(get_current_user),
+):
     """Affiche toutes les opportunités d'investissement validées par le LLM."""
+    blocked = _require_private_access(request, current_user)
+    if blocked:
+        return blocked
     try:
         opportunities = get_rag_opportunities(settings, limit=100)
     except Exception:
@@ -802,13 +863,20 @@ async def opportunities_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="opportunities.html",
-        context={"opportunities": opportunities, "sectors": sectors, "regions": regions},
+        context={"opportunities": opportunities, "sectors": sectors, "regions": regions, "user": current_user},
     )
 
 
 @app.get("/observatory")
-async def observatory(request: Request, db: Session = Depends(get_db)):
+async def observatory(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
     """Rend le template historique avec les profils réels de la base."""
+    blocked = _require_private_access(request, current_user)
+    if blocked:
+        return blocked
     posts = (
         db.query(Post)
         .filter(Post.is_active.is_(True), Post.review_status == "approved")
@@ -823,6 +891,7 @@ async def observatory(request: Request, db: Session = Depends(get_db)):
             "sector_labels": OBSERVATORY_DOMAIN_LABELS,
             "sectors": list(OBSERVATORY_DOMAIN_LABELS.keys()),
             "countries": countries,
+            "user": current_user,
         },
     )
 
@@ -831,8 +900,15 @@ async def observatory(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/login")
 async def login_page(request: Request):
-    if request.session.get("user_id"):
-        return RedirectResponse(url="/admin", status_code=303)
+    user_id = request.session.get("user_id")
+    if user_id:
+        db = next(get_db())
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            if user.role == "admin":
+                return RedirectResponse(url="/admin", status_code=303)
+            if user_has_private_access(user):
+                return RedirectResponse(url="/opportunities", status_code=303)
     return templates.TemplateResponse(request=request, name="login.html", context={})
 
 
@@ -848,9 +924,18 @@ async def login_submit(
         flash(request, "Email ou mot de passe incorrect.", "error")
         return RedirectResponse(url="/login", status_code=303)
 
+    if user.status == "pending":
+        flash(request, "Votre demande d'accès est en attente de validation par l'administration.", "error")
+        return RedirectResponse(url="/login", status_code=303)
+    if user.status in {"blocked", "expired", "cancelled"}:
+        flash(request, "Votre accès n'est plus autorisé. Contactez l'administration.", "error")
+        return RedirectResponse(url="/login", status_code=303)
+
     request.session["user_id"] = user.id
     flash(request, "Connexion reussie.", "success")
-    return RedirectResponse(url="/admin", status_code=303)
+    if user.role == "admin":
+        return RedirectResponse(url="/admin", status_code=303)
+    return RedirectResponse(url="/opportunities", status_code=303)
 
 
 @app.get("/register")
@@ -861,11 +946,16 @@ async def register_page(request: Request):
 @app.post("/register")
 async def register_submit(
     request: Request,
+    full_name: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
     email_clean = email.strip().lower()
+    name_clean = full_name.strip()
+    if not name_clean:
+        flash(request, "Le nom complet est obligatoire.", "error")
+        return RedirectResponse(url="/register", status_code=303)
     if len(password) < 6:
         flash(request, "Le mot de passe doit contenir au moins 6 caracteres.", "error")
         return RedirectResponse(url="/register", status_code=303)
@@ -876,12 +966,15 @@ async def register_submit(
 
     user = User(
         email=email_clean,
+        full_name=name_clean,
         password_hash=hash_password(password),
+        role="user",
+        status="pending",
     )
     db.add(user)
     db.commit()
 
-    flash(request, "Compte administrateur cree. Vous pouvez vous connecter.", "success")
+    flash(request, "Votre demande d'accès a bien été enregistrée. Elle est en attente de validation par l'administration.", "success")
     return RedirectResponse(url="/login", status_code=303)
 
 
@@ -900,14 +993,17 @@ async def admin_page(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user:
+    if not current_user or current_user.role != "admin":
+        flash(request, "Accès admin requis.", "error")
         return RedirectResponse(url="/login", status_code=303)
 
     posts = db.query(Post).order_by(Post.created_at.desc()).all()
+    users = db.query(User).order_by(User.created_at.desc()).all()
     domains = list(OBSERVATORY_DOMAIN_LABELS.keys())
     domain_counts = {d: sum(1 for p in posts if p.sector == d) for d in domains}
     stats = SimpleNamespace(
         total_users=db.query(User).count(),
+        pending_users=sum(1 for u in users if u.role == "user" and u.status == "pending"),
         total_posts=len(posts),
         active_posts=sum(1 for p in posts if p.is_active),
         inactive_posts=sum(1 for p in posts if not p.is_active),
@@ -921,6 +1017,7 @@ async def admin_page(
         request=request, name="admin.html",
         context={
             "user": current_user,
+            "users": users,
             "stats": stats,
             "posts": posts,
             "recent": posts[:5],
@@ -928,6 +1025,54 @@ async def admin_page(
             "domain_labels": OBSERVATORY_DOMAIN_LABELS,
         },
     )
+
+
+@app.get("/admin/access-requests")
+async def admin_access_requests_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    if not current_user or current_user.role != "admin":
+        flash(request, "Accès admin requis.", "error")
+        return RedirectResponse(url="/login", status_code=303)
+
+    users = db.query(User).filter(User.role == "user").order_by(User.created_at.desc()).all()
+    users.sort(key=lambda account: account.status != "pending")
+    pending_count = sum(1 for account in users if account.status == "pending")
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_access_requests.html",
+        context={"user": current_user, "users": users, "pending_count": pending_count},
+    )
+
+
+@app.post("/admin/users/{user_id}/status")
+async def update_user_status(
+    request: Request,
+    user_id: int,
+    status: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+):
+    if not current_user or current_user.role != "admin":
+        flash(request, "Accès admin requis.", "error")
+        return RedirectResponse(url="/login", status_code=303)
+
+    valid_statuses = {"pending", "active", "free", "blocked", "expired", "cancelled"}
+    if status not in valid_statuses:
+        flash(request, "Statut non valide.", "error")
+        return RedirectResponse(url="/admin/access-requests", status_code=303)
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        flash(request, "Compte introuvable.", "error")
+        return RedirectResponse(url="/admin/access-requests", status_code=303)
+
+    user.status = status
+    db.commit()
+    flash(request, f"Le statut de {user.email} a été mis à jour.", "success")
+    return RedirectResponse(url="/admin/access-requests", status_code=303)
 
 
 @app.post("/admin/add")

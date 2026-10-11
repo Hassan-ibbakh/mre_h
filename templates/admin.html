@@ -3,6 +3,10 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard admin — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
@@ -160,6 +164,85 @@ tr.is-hidden{display:none;}
 .pg-btn{border:1px solid var(--gray);background:var(--white);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text);transition:.15s var(--ease);}
 .pg-btn:hover:not(:disabled){border-color:var(--navy);color:var(--navy);}
 .pg-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ---------- Admin dashboard refinement ---------- */
+:root{
+  --navy:#173641; --navy-2:#245462; --navy-tint:#E8F0EF;
+  --gold:#B77C35; --gold-tint:#F7EFDF; --gold-deep:#80551F;
+  --green:#397C68; --green-tint:#E6F2EC;
+  --red:#A6463C; --red-tint:#F8EAE7;
+  --gray:#D8E1DC; --gray-line:#E5EBE7; --surface:#F4F6F3;
+  --text:#1D3034; --text-soft:#617276; --text-faint:#879497; --white:#FFFFFF;
+  --radius:10px; --radius-sm:7px;
+  --shadow-card:0 3px 16px rgba(23,54,65,.045);
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);}
+.sidebar{background:var(--navy);}
+.sidebar-logo{padding-bottom:30px;}
+.sidebar-logo-title,.topbar h1,.stat-value,.panel h2{font-family:'Fraunces',Georgia,serif;letter-spacing:0;}
+.nav-item{border-radius:7px;}
+.nav-item.active{background:rgba(255,255,255,.12);box-shadow:inset 3px 0 0 #D7A450;}
+.nav-count{margin-left:auto;min-width:21px;padding:2px 6px;border-radius:10px;background:#D7A450;color:#173641;text-align:center;font-size:10px;font-weight:700;}
+.topbar{padding:16px 34px;box-shadow:0 1px 0 rgba(23,54,65,.025);}
+.topbar h1{font-size:19px;}
+.content{max-width:1560px;padding-top:28px;}
+.page-intro{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:8px 0 24px;margin-bottom:22px;border-bottom:1px solid var(--gray-line);}
+.page-intro h2{margin:5px 0 4px;font-family:'Fraunces',Georgia,serif;font-size:27px;line-height:1.2;font-weight:500;color:var(--navy);}
+.page-intro p{color:var(--text-soft);font-size:13px;}
+.page-intro .intro-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--green);}
+.intro-action{display:flex;align-items:center;gap:15px;padding:11px 13px 11px 16px;border:1px solid #D9E5DF;border-radius:8px;background:#fff;color:var(--navy);transition:border-color .15s var(--ease),transform .15s var(--ease);}
+.intro-action:hover{border-color:var(--green);transform:translateY(-1px);}
+.intro-action-label{font-size:12px;font-weight:600;}
+.intro-action-count{display:grid;place-items:center;min-width:30px;height:30px;padding:0 8px;border-radius:50%;background:var(--gold-tint);color:var(--gold-deep);font-weight:700;font-size:12px;}
+.stats-row{grid-template-columns:repeat(5,minmax(145px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{position:relative;min-width:0;padding:15px 16px;border-radius:9px;box-shadow:var(--shadow-card);}
+.stat-card:nth-child(1){border-top:2px solid var(--navy-2);}
+.stat-card:nth-child(2){border-top:2px solid var(--green);}
+.stat-card:nth-child(3){border-top:2px solid #B77C35;}
+.stat-card:nth-child(4){border-top:2px solid #648B9A;}
+.stat-card:nth-child(5){border-top:2px solid #9A7050;}
+.stat-icon{width:30px;height:30px;margin-bottom:11px;border-radius:7px;}
+.stat-value{font-size:24px;}
+.stat-label{line-height:1.35;}
+.panel{border-radius:9px;padding:20px;box-shadow:var(--shadow-card);}
+.panel h2{font-size:17px;}
+.panel-head{align-items:center;}
+.panel-hint{padding:4px 8px;border-radius:5px;background:#F3F6F3;}
+#access-requests{border-top:2px solid var(--gold);}
+#access-requests tbody tr:has(select option[value="pending"]:checked){background:#FFFCF5;}
+.action-btn,.btn-submit{border-radius:6px;}
+.action-btn{font-weight:600;}
+.action-btn:hover{background:var(--navy-tint);}
+.action-btn.danger:hover{background:var(--red-tint);}
+input,select,textarea{border-radius:6px;}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(57,124,104,.12);}
+.sector-pill,.status-pill,.origin-pill{border-radius:5px;}
+.table-wrap{border-radius:6px;}
+th{font-size:10px;letter-spacing:.08em;}
+td{line-height:1.45;}
+.pagination{border-color:var(--gray-line);}
+@media (max-width:1100px){.stats-row{grid-template-columns:repeat(3,minmax(145px,1fr));}}
+@media (max-width:720px){
+  .topbar{padding:13px 16px;}
+  .content{padding:20px 16px 40px;}
+  .page-intro{align-items:flex-start;flex-direction:column;gap:14px;padding-bottom:18px;}
+  .page-intro h2{font-size:23px;}
+  .intro-action{width:100%;justify-content:space-between;}
+  .stats-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+  .stat-card{padding:13px;}
+  .panel{padding:16px;}
+}
+@media (max-width:1100px){
+  .two-col,.grid{min-width:0;grid-template-columns:minmax(0,1fr);}
+  .two-col>.panel,.grid>.panel{min-width:0;}
+  .panel-head{flex-wrap:wrap;align-items:flex-start;}
+  .panel-hint{white-space:normal;}
+  .bar-chart{width:100%;min-width:0;overflow-x:auto;}
+  .bar-col{flex:0 0 40px;min-width:40px;}
+  .table-wrap{min-width:0;max-width:100%;}
+}
+@media (max-width:380px){.stats-row{grid-template-columns:1fr 1fr;}.stat-label{font-size:11px;}}
 </style>
 </head>
 <body>
@@ -171,6 +254,7 @@ tr.is-hidden{display:none;}
       <div><div class="sidebar-logo-title">MRE AI</div><div class="sidebar-logo-sub">Intelligence au service du pays</div></div>
     </div>
     <a href="{{ url_for('admin_dashboard') }}" class="nav-item active"><span class="ic">▦</span> Dashboard</a>
+    <a href="{{ url_for('admin_access_requests') }}" class="nav-item"><span class="ic">✉</span> Demandes d'accès{% if stats.pending_users %}<span class="nav-count">{{ stats.pending_users }}</span>{% endif %}</a>
     <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">⌂</span> Accueil</a>
     <a href="{{ url_for('opportunities') }}" class="nav-item"><span class="ic">◈</span> Opportunités</a>
     <a href="{{ url_for('chat_page') }}" class="nav-item"><span class="ic">✦</span> Assistant IA</a>
@@ -183,7 +267,7 @@ tr.is-hidden{display:none;}
 
   <div class="main">
     <div class="topbar">
-      <h1>Dashboard</h1>
+      <h1>Espace de pilotage</h1>
       {% if user %}
       <div class="who">
         <div class="who-avatar">{{ user.email[0] | upper }}</div>
@@ -197,11 +281,23 @@ tr.is-hidden{display:none;}
         {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
       {% endwith %}
 
+      <section class="page-intro">
+        <div>
+          <p class="intro-kicker">ADMINISTRATION · MRE AI</p>
+          <h2>La plateforme, en un coup d’œil.</h2>
+          <p>Gérez les accès, les talents et les ressources de votre observatoire.</p>
+        </div>
+        <a class="intro-action" href="{{ url_for('admin_access_requests') }}">
+          <span class="intro-action-label">Demandes à examiner</span>
+          <span class="intro-action-count">{{ stats.pending_users }}</span>
+        </a>
+      </section>
+
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-icon navy">👥</div>
           <div class="stat-value">{{ stats.total_users }}</div>
-          <div class="stat-label">Comptes administrateurs</div>
+          <div class="stat-label">Comptes utilisateurs</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon green">📋</div>
