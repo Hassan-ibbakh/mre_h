@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Observatoire des Compétences — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
+  --gold:#C9972E; --gold-tint:#FBF1DC;
+  --green:#3F8F3F; --green-tint:#E6F1E3;
+  --gray:#DCD9CE; --surface:#F7F6F2;
+  --text:#16233A; --text-soft:#5F6B82; --white:#FFFFFF;
+  --radius:16px; --radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);line-height:1.6;}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;letter-spacing:-0.01em;}
+.container{max-width:1200px;margin:auto;padding:0 24px;}
+a{color:inherit;}
+header{padding:18px 0;border-bottom:1px solid var(--gray);background:var(--white);}
+.header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
+.logo{display:flex;align-items:center;gap:11px;}
+.logo-mark{width:38px;height:38px;border-radius:11px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-mark svg{width:20px;height:20px;}
+.logo-title{font-size:18px;font-weight:700;color:var(--navy);font-family:'Inter',sans-serif;}
+.logo-sub{font-size:10.5px;color:var(--text-soft);}
+nav ul{display:flex;list-style:none;gap:26px;align-items:center;flex-wrap:wrap;}
+nav ul li a{text-decoration:none;font-weight:500;font-size:14px;color:var(--text);}
+nav ul li a.active{color:var(--navy);font-weight:700;}
+.btn-admin{background:var(--navy);color:var(--white) !important;padding:9px 20px;border-radius:22px;font-size:13.5px !important;}
+.obs-hero{padding:50px 0 34px;background:radial-gradient(circle at 8% 15%, var(--gold-tint) 0%, transparent 40%),radial-gradient(circle at 95% 90%, var(--green-tint) 0%, transparent 40%);}
+.obs-hero h1{font-size:34px;color:var(--navy);margin-bottom:10px;}
+.obs-hero p{color:var(--text-soft);font-size:15.5px;max-width:620px;margin-bottom:26px;}
+.search-card{background:var(--white);border:1px solid var(--gray);border-radius:var(--radius);padding:20px;box-shadow:0 10px 30px rgba(11,30,51,.06);}
+.search-row{display:flex;gap:10px;}
+.search-row input{flex:1;padding:14px 18px;border:1px solid var(--gray);border-radius:26px;font-size:14.5px;outline:none;font-family:'Inter',sans-serif;}
+.search-row input:focus{border-color:var(--navy);}
+.search-row button{padding:0 26px;border:none;border-radius:26px;background:var(--navy);color:var(--white);font-weight:600;font-size:14px;cursor:pointer;}
+.search-row button:hover{background:var(--navy-2);}
+.example-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.example-chip{background:var(--surface);border:1px solid var(--gray);color:var(--text);padding:7px 14px;border-radius:18px;font-size:12.5px;cursor:pointer;}
+.example-chip:hover{border-color:var(--navy);color:var(--navy);}
+.ai-answer{display:none;margin-top:22px;background:var(--surface);border:1px solid var(--gray);border-radius:var(--radius);padding:20px 22px;}
+.ai-answer.active{display:block;}
+.ai-answer .label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);font-weight:700;margin-bottom:8px;}
+.ai-answer .msg-text{font-size:14.5px;margin-bottom:16px;white-space:pre-line;}
+.no-results{color:var(--text-soft);font-size:13.5px;font-style:italic;}
+.typing-line{color:var(--text-soft);font-size:13.5px;font-style:italic;}
+
+/* ---------- Cartes talents (recherche + annuaire) ---------- */
+.match-grid,.directory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
+
+.talent-card{
+  --accent:var(--navy);
+  position:relative;
+  background:var(--white);
+  border:1px solid var(--gray);
+  border-radius:14px;
+  padding:18px 18px 15px;
+  cursor:pointer;
+  overflow:hidden;
+  transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+.talent-card::before{
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--accent);
+}
+.talent-card:hover{
+  box-shadow:0 16px 34px rgba(11,30,51,.10);
+  transform:translateY(-3px);
+  border-color:rgba(11,30,51,.16);
+}
+.talent-card[data-sector="tech"]{--accent:#0B1E33;}
+.talent-card[data-sector="finance"]{--accent:#C9972E;}
+.talent-card[data-sector="agriculture"]{--accent:#3F8F3F;}
+.talent-card[data-sector="industry"]{--accent:#B5563C;}
+.talent-card[data-sector="health"]{--accent:#2E7D6B;}
+.talent-card[data-sector="education"]{--accent:#5B6B8C;}
+.talent-card[data-sector="creative"]{--accent:#6B4C7A;}
+.talent-card[data-sector="social"]{--accent:#8A8574;}
+.talent-card[data-sector="other"]{--accent:#42474F;}
+
+.talent-card__head{display:flex;gap:11px;align-items:flex-start;margin-bottom:12px;}
+.talent-card__avatar{width:42px;height:42px;border-radius:50%;background:var(--navy-tint);color:var(--navy-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;object-fit:cover;}
+.talent-card__id{flex:1;min-width:0;}
+.talent-card__name{font-family:'Fraunces',serif;font-size:15.5px;font-weight:600;color:var(--text);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.talent-card__meta{font-size:11.5px;color:var(--text-soft);margin-top:3px;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.talent-card__meta svg{width:11px;height:11px;flex-shrink:0;opacity:.7;}
+
+.match-ring{
+  --pct:0;
+  position:relative; width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(var(--accent) calc(var(--pct)*1%), var(--navy-tint) 0);
+}
+.match-ring span{
+  position:absolute; inset:4px; border-radius:50%; background:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--text);
+}
+
+.talent-card__sector{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:10px;
+}
+.talent-card__sector::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+.talent-card__tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:22px;}
+.talent-card__tags .tag-pill{background:var(--surface);color:var(--text-soft);border:1px solid var(--gray);font-weight:600;font-size:10.5px;padding:3px 10px;border-radius:10px;}
+
+.talent-card__foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--surface);font-size:11.5px;}
+.talent-card__source{color:var(--text-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.talent-card__source a{color:var(--navy-2);font-weight:600;text-decoration:none;}
+.talent-card__source a:hover{text-decoration:underline;}
+.talent-card__cta{color:var(--accent);font-weight:700;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;}
+
+/* ---------- Section annuaire ---------- */
+.directory{padding:46px 0 60px;}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:24px;}
+.section-head h2{font-size:24px;color:var(--navy);}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;}
+.filters select{padding:9px 14px;border:1px solid var(--gray);border-radius:20px;font-size:13px;background:var(--white);font-family:'Inter',sans-serif;}
+
+/* ---------- Modale profil ---------- */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,30,51,.55);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal-card{background:var(--white);border-radius:18px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:0;position:relative;box-shadow:0 24px 70px rgba(11,30,51,.28);}
+.modal-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.16);border:none;width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(4px);}
+.modal-close:hover{background:rgba(255,255,255,.3);}
+.modal-band{background:linear-gradient(135deg,var(--navy),var(--navy-2));padding:30px 28px 42px;position:relative;}
+.modal-avatar{width:64px;height:64px;border-radius:50%;background:var(--white);color:var(--navy-2);border:3px solid var(--white);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;box-shadow:0 8px 20px rgba(0,0,0,.22);object-fit:cover;}
+.modal-name{font-family:'Fraunces',serif;font-size:21px;color:#fff;margin-top:14px;}
+.modal-loc{font-size:12.5px;color:rgba(255,255,255,.68);margin-top:4px;}
+.modal-body{padding:24px 28px 28px;margin-top:-20px;}
+.modal-tags{display:flex;flex-wrap:wrap;gap:6px;background:var(--white);border-radius:12px;padding:12px 14px;box-shadow:0 6px 18px rgba(11,30,51,.08);}
+.modal-tags .tag-pill{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:12px;}
+.modal-tags .tag-pill.navy{background:var(--navy-tint);color:var(--navy-2);}
+.modal-tags .tag-pill.green{background:var(--green-tint);color:#2C6B2C;}
+.modal-section-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);font-weight:700;margin-bottom:7px;margin-top:22px;}
+.modal-description{font-size:14px;color:var(--text);white-space:pre-line;line-height:1.7;}
+.modal-description.empty{color:var(--text-soft);font-style:italic;}
+.modal-source{font-size:12.5px;color:var(--text-soft);}
+.modal-source a{color:var(--navy-2);font-weight:600;text-decoration:none;}
+.modal-source a:hover{text-decoration:underline;}
+
+footer{background:var(--navy);color:var(--white);padding:36px 0;}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+footer p.copyright{opacity:.55;font-size:12.5px;}
+@media(max-width:700px){
+  .container{padding-right:16px;padding-left:16px;}
+  .obs-hero{padding:34px 0 26px;}
+  .obs-hero h1{font-size:28px;}
+  .search-card{padding:14px;}
+  .search-row{flex-direction:column;}
+  .search-row input,.search-row button{width:100%;min-width:0;}
+  .search-row button{min-height:42px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="container header-inner">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:38px;width:auto;">
+      <div><div class="logo-title">MRE AI</div><div class="logo-sub">Intelligence au service du pays</div></div>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="{{ url_for('home') }}">Accueil</a></li>
+        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
+        <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
+        <li><a href="{{ url_for('observatory') }}" class="active">Observatoire</a></li>
+        <li><a href="{{ url_for('home') }}#about">À propos</a></li>
+        <li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="obs-hero">
+  <div class="container">
+    <h1>Observatoire des Compétences</h1>
+    <p>Décrivez le profil que vous recherchez en langage naturel — notre agent IA analyse votre besoin et vous recommande les meilleurs talents marocains établis à l'étranger.</p>
+
+    <div class="search-card">
+      <div class="search-row">
+        <input type="text" id="obsInput" placeholder="Ex : je veux un développeur Java avec 5 ans d'expérience" autofocus>
+        <button id="obsSendBtn">Rechercher</button>
+      </div>
+      <div class="example-chips">
+        <button class="example-chip" data-q="Développeur Java avec 5 ans d'expérience">Développeur Java, 5 ans d'XP</button>
+        <button class="example-chip" data-q="Expert en agro-industrie basé en Europe">Expert agro-industrie</button>
+        <button class="example-chip" data-q="Ingénieur data avec expérience au Canada">Ingénieur data, Canada</button>
+      </div>
+
+      <div id="aiAnswer" class="ai-answer">
+        <div class="label">Recommandation de l'agent</div>
+        <div id="aiMsgText" class="msg-text"></div>
+        <div id="matchGrid" class="match-grid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="directory">
+  <div class="container">
+    <div class="section-head"><h2>Tous les profils</h2></div>
+    <div class="filters">
+      <select id="filterSector">
+        <option value="">Tous les secteurs</option>
+        {% for s in sectors %}<option value="{{ s }}">{{ sector_labels[s] }}</option>{% endfor %}
+      </select>
+      <select id="filterCountry">
+        <option value="">Tous les pays</option>
+        {% for c in countries %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="directory-grid" id="directoryGrid">
+      {% for post in posts %}
+      <div class="expert-card talent-card"
+           data-sector="{{ post.sector }}"
+           data-country="{{ post.country or '' }}"
+           data-name="{{ post.title }}"
+           data-sector-label="{{ post.sector_label() }}"
+           data-tags="{{ post.tags_list() | join(', ') }}"
+           data-years="{{ post.years_experience or '' }}"
+           data-description="{{ post.description or '' }}"
+           data-image="{{ post.image_url or '' }}"
+           data-source-name="{{ post.source_name or '' }}"
+           data-source-url="{{ post.source_url or '' }}"
+           data-review-status="{{ post.review_status }}">
+        <div class="talent-card__head">
+          {% if post.image_url %}
+          <img src="{{ post.image_url }}" alt="{{ post.title }}" class="talent-card__avatar">
+          {% else %}
+          <div class="talent-card__avatar">{{ post.initials() }}</div>
+          {% endif %}
+          <div class="talent-card__id">
+            <div class="talent-card__name">{{ post.title }}</div>
+            <div class="talent-card__meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.3"/></svg>
+              {{ post.country or "Pays non précisé" }}{% if post.years_experience and post.years_experience != '?' %} · {{ post.years_experience }} ans{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="talent-card__sector">{{ post.sector_label() }}</div>
+        <div class="talent-card__tags">
+          {% for tag in post.tags_list() %}<span class="tag-pill">{{ tag }}</span>{% endfor %}
+        </div>
+        <div class="talent-card__foot">
+          <span class="talent-card__source">
+            {% if post.source_name or post.source_url %}
+              {% if post.source_url %}<a href="{{ post.source_url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">{{ post.source_name or 'Source' }}</a>{% else %}{{ post.source_name }}{% endif %}
+            {% endif %}
+          </span>
+          <span class="talent-card__cta">Voir le profil →</span>
+        </div>
+      </div>
+      {% else %}
+      <p class="no-results">Aucun profil publié pour le moment.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-inner">
+    <div>
+      <div class="logo-title" style="color:#fff;">MRE AI</div>
+      <p class="copyright" style="margin-top:6px;">© 2026 MRE AI. Tous droits réservés.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Fermer">✕</button>
+    <div class="modal-band">
+      <div class="modal-avatar" id="modalAvatar"></div>
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-loc" id="modalLoc"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tags" id="modalTags"></div>
+      <div class="modal-section-label">Description</div>
+      <div class="modal-description" id="modalDescription"></div>
+      <div id="modalSourceWrap">
+        <div class="modal-section-label">Source</div>
+        <div class="modal-source" id="modalSource"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const input = document.getElementById('obsInput');
+const sendBtn = document.getElementById('obsSendBtn');
+const aiAnswer = document.getElementById('aiAnswer');
+const aiMsgText = document.getElementById('aiMsgText');
+const matchGrid = document.getElementById('matchGrid');
+
+const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.3"/></svg>';
+
+// Le backend renvoie le libellé français du secteur (sector_label), pas la clé
+// technique -- on la retrouve ici pour appliquer la bonne couleur d'accent.
+const SECTOR_KEY_BY_LABEL = {
+  'Technologie':'tech', 'Santé':'health', 'Éducation':'education', 'Agriculture':'agriculture',
+  'Industrie':'industry', 'Finance':'finance', 'Créatif':'creative', 'Social':'social', 'Autre':'other'
+};
+
+function initials(name){
+  return name.split(' ').slice(0,2).map(p=>p[0] || '').join('').toUpperCase();
+}
+
+function uniqueMatches(matches){
+  const seen = new Set();
+  return (matches || []).filter(function(m){
+    if(!m || typeof m.id === 'undefined') return false;
+    if(m.review_status !== 'approved') return false;
+    if(seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
+const modalOverlay = document.getElementById('modalOverlay');
+const modalClose = document.getElementById('modalClose');
+const modalAvatar = document.getElementById('modalAvatar');
+const modalName = document.getElementById('modalName');
+const modalLoc = document.getElementById('modalLoc');
+const modalTags = document.getElementById('modalTags');
+const modalDescription = document.getElementById('modalDescription');
+const modalSourceWrap = document.getElementById('modalSourceWrap');
+const modalSource = document.getElementById('modalSource');
+
+function openModal(data){
+  modalName.textContent = data.name || 'Profil';
+  const locParts = [];
+  if(data.country) locParts.push(data.country);
+  if(data.years) locParts.push(data.years + " ans d'expérience");
+  modalLoc.textContent = locParts.join(' · ') || 'Localisation non précisée';
+
+  if(data.image){
+    modalAvatar.innerHTML = '<img src="' + data.image + '" alt="' + data.name + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+  } else {
+    modalAvatar.textContent = initials(data.name || '?');
+  }
+
+  const allTags = [];
+  if(data.sectorLabel) allTags.push({text:data.sectorLabel, cls:'navy'});
+  (data.tags || []).forEach(t => { if(t) allTags.push({text:t, cls:'green'}); });
+  modalTags.innerHTML = allTags.map(t => '<span class="tag-pill ' + t.cls + '">' + t.text + '</span>').join('');
+
+  if(data.description && data.description.trim()){
+    modalDescription.textContent = data.description;
+    modalDescription.classList.remove('empty');
+  } else {
+    modalDescription.textContent = "Aucune description disponible pour ce profil.";
+    modalDescription.classList.add('empty');
+  }
+
+  if(data.sourceName || data.sourceUrl){
+    modalSourceWrap.style.display = '';
+    modalSource.innerHTML = data.sourceUrl
+      ? '<a href="' + data.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + (data.sourceName || 'Voir la source') + '</a>'
+      : (data.sourceName || '');
+  } else {
+    modalSourceWrap.style.display = 'none';
+  }
+
+  modalOverlay.classList.add('active');
+}
+
+function closeModal(){
+  modalOverlay.classList.remove('active');
+}
+
+modalClose.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', function(e){ if(e.target === modalOverlay) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+
+document.getElementById('directoryGrid').addEventListener('click', function(e){
+  const card = e.target.closest('.expert-card');
+  if(!card) return;
+  openModal({
+    name: card.dataset.name,
+    country: card.dataset.country,
+    years: card.dataset.years,
+    sectorLabel: card.dataset.sectorLabel,
+    tags: (card.dataset.tags || '').split(',').map(function(t){ return t.trim(); }).filter(Boolean),
+    description: card.dataset.description,
+    image: card.dataset.image,
+    sourceName: card.dataset.sourceName,
+    sourceUrl: card.dataset.sourceUrl,
+  });
+});
+
+async function search(){
+  const message = input.value.trim();
+  if(!message) return;
+  aiAnswer.classList.add('active');
+  aiMsgText.innerHTML = '<span class="typing-line">L\'agent analyse votre demande...</span>';
+  matchGrid.innerHTML = '';
+  try{
+    const res = await fetch('/api/observatory-chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await res.json();
+    if(!res.ok){
+      aiMsgText.textContent = data.error || "Une erreur est survenue.";
+      return;
+    }
+    const matches = uniqueMatches(data.matches || []);
+    if(matches.length){
+      aiMsgText.textContent = data.response || "Voici les profils correspondant à votre recherche.";
+      matchGrid.innerHTML = matches.map(function(m, i){
+        const pct = m.match_score ?? 0;
+        const sectorKey = SECTOR_KEY_BY_LABEL[m.sector_label] || 'other';
+        const years = (m.years_experience && m.years_experience !== '?') ? ' · ' + m.years_experience + ' ans' : '';
+        return '<div class="match-card talent-card" data-sector="' + sectorKey + '" data-match-index="' + i + '">' +
+          '<div class="talent-card__head">' +
+            '<div class="talent-card__avatar">' + initials(m.title || '?') + '</div>' +
+            '<div class="talent-card__id">' +
+              '<div class="talent-card__name">' + (m.title || 'Profil sans nom') + '</div>' +
+              '<div class="talent-card__meta">' + PIN_SVG + (m.country || 'Pays non précisé') + years + '</div>' +
+            '</div>' +
+            '<div class="match-ring" style="--pct:' + pct + '"><span>' + pct + '%</span></div>' +
+          '</div>' +
+          '<div class="talent-card__sector">' + (m.sector_label || 'Secteur inconnu') + '</div>' +
+          '<div class="talent-card__tags">' + (m.tags || []).map(function(t){ return '<span class="tag-pill">' + t + '</span>'; }).join('') + '</div>' +
+          '<div class="talent-card__foot">' +
+            '<span class="talent-card__source"></span>' +
+            '<span class="talent-card__cta">Voir le profil →</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      matchGrid.querySelectorAll('.match-card').forEach(function(card){
+        card.addEventListener('click', function(){
+          const m = matches[parseInt(card.dataset.matchIndex, 10)];
+          openModal({
+            name: m.title,
+            country: m.country,
+            years: m.years_experience && m.years_experience !== '?' ? m.years_experience : '',
+            sectorLabel: m.sector_label,
+            tags: m.tags,
+            description: m.description,
+            sourceName: m.source_name,
+            sourceUrl: m.source_url,
+          });
+        });
+      });
+    } else {
+      aiMsgText.textContent = "Aucun profil ne correspond à cette recherche.";
+      matchGrid.innerHTML = '<p class="no-results">Aucun profil ne correspond pour le moment. L\'équipe MRE AI enrichit régulièrement l\'Observatoire.</p>';
+    }
+  } catch(e){
+    aiMsgText.textContent = "Impossible de joindre le serveur.";
+  }
+}
+
+sendBtn.addEventListener('click', search);
+input.addEventListener('keypress', function(e){ if(e.key === 'Enter') search(); });
+document.querySelectorAll('.example-chip').forEach(function(chip){
+  chip.addEventListener('click', function(){ input.value = chip.dataset.q; search(); });
+});
+
+const filterSector = document.getElementById('filterSector');
+const filterCountry = document.getElementById('filterCountry');
+function applyFilters(){
+  const s = filterSector.value, c = filterCountry.value;
+  document.querySelectorAll('#directoryGrid .expert-card').forEach(function(card){
+    const okS = !s || card.dataset.sector === s;
+    const okC = !c || card.dataset.country === c;
+    card.style.display = (okS && okC) ? '' : 'none';
+  });
+}
+filterSector.addEventListener('change', applyFilters);
+filterCountry.addEventListener('change', applyFilters);
+</script>
+</body>
+</html>

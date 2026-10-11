@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "name": "Aujourd'hui le Maroc",
+      "url": "https://aujourdhui.ma/feed"
+    },
+    {
+      "name": "La Nouvelle Tribune",
+      "url": "https://lnt.ma/feed/"
+    },
+    {
+      "name": "Le Matin - Activités Royales",
+      "url": "https://lematin.ma/rssFeed/26"
+    },
+    {
+      "name": "Le Matin - Afrique Développement",
+      "url": "https://lematin.ma/rssFeed/74"
+    },
+    {
+      "name": "OujdaCity",
+      "url": "https://www.oujdacity.net/feed"
+    },
+    {
+      "name": "Morocco Times TV",
+      "url": "https://moroccotimes.tv/feed/"
+    }
+  ]
+}

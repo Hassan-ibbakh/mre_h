@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard admin — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
+  --gold:#C9972E; --gold-tint:#FBF1DC; --gold-deep:#8A6417;
+  --green:#3F8F3F; --green-tint:#E6F1E3;
+  --red:#A23B3B; --red-tint:#FBEAEA;
+  --gray:#DCD9CE; --gray-line:#EAE8E1; --surface:#F7F6F2;
+  --text:#16233A; --text-soft:#5F6B82; --text-faint:#8B93A6; --white:#FFFFFF;
+  --radius:14px; --radius-sm:9px;
+  --shadow-card:0 1px 2px rgba(11,30,51,.04), 0 1px 1px rgba(11,30,51,.03);
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',sans-serif;background:var(--surface);color:var(--text);font-size:14px;line-height:1.45;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+:focus-visible{outline:2px solid var(--navy-2);outline-offset:2px;border-radius:4px;}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+
+.layout{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{width:228px;flex-shrink:0;background:var(--navy);color:#fff;display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh;}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:4px 8px 24px;}
+.sidebar-logo-title{font-family:'Fraunces',serif;font-size:15px;font-weight:600;letter-spacing:.01em;}
+.sidebar-logo-sub{font-size:10px;opacity:.5;margin-top:1px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.68);margin-bottom:2px;transition:background .15s var(--ease),color .15s var(--ease);}
+.nav-item .ic{width:16px;text-align:center;font-size:14px;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.13);color:#fff;box-shadow:inset 2px 0 0 var(--gold);}
+.sidebar-bottom{margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}
+
+@media (max-width:720px){
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:sticky;top:0;z-index:30;flex-direction:row;align-items:center;padding:10px 14px;overflow-x:auto;}
+  .sidebar-logo{padding:0 14px 0 0;flex-shrink:0;}
+  .sidebar-logo-sub{display:none;}
+  .nav-item{margin-bottom:0;white-space:nowrap;}
+  .sidebar-bottom{margin-top:0;padding-top:0;border-top:none;margin-left:auto;padding-left:10px;}
+  .content{padding:20px 16px 40px;}
+  .topbar{padding:14px 16px;}
+}
+
+/* ---------- Main ---------- */
+.main{flex:1;min-width:0;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-line);padding:15px 32px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20;}
+.topbar h1{font-family:'Fraunces',serif;font-weight:500;font-size:18px;color:var(--navy);}
+.topbar .who{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-soft);}
+.who-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy-tint);color:var(--navy-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;}
+
+.content{padding:26px 32px 60px;max-width:1400px;}
+.flash{padding:10px 16px;border-radius:10px;margin-bottom:18px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.flash.success{background:var(--green-tint);color:#2C6B2C;}
+.flash.error{background:var(--red-tint);color:var(--red);}
+
+/* ---------- Stat cards ---------- */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--white);border:1px solid var(--gray-line);border-radius:var(--radius);padding:17px 19px;box-shadow:var(--shadow-card);transition:border-color .15s var(--ease);}
+.stat-card:hover{border-color:var(--gray);}
+.stat-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px;}
+.stat-icon.navy{background:var(--navy-tint);}
+.stat-icon.green{background:var(--green-tint);}
+.stat-icon.gold{background:var(--gold-tint);}
+.stat-value{font-family:'Fraunces',serif;font-weight:600;font-size:25px;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1;}
+.stat-label{font-size:12px;color:var(--text-soft);margin-top:5px;}
+
+/* ---------- Panels ---------- */
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px;align-items:start;}
+@media (max-width:900px){.two-col{grid-template-columns:1fr;}}
+.panel{background:var(--white);border:1px solid var(--gray-line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-card);}
+.panel h2{font-family:'Fraunces',serif;font-weight:500;font-size:16px;color:var(--navy);}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;gap:12px;}
+.panel-hint{font-size:11.5px;color:var(--text-faint);}
+
+/* ---------- Bar chart (cliquable) ---------- */
+.bar-chart{display:flex;align-items:flex-end;gap:18px;height:168px;padding-top:8px;}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;height:100%;justify-content:flex-end;cursor:pointer;background:none;border:none;padding:0;font-family:inherit;}
+.bar-track{width:32px;background:var(--surface);border-radius:6px 6px 0 0;height:100%;display:flex;align-items:flex-end;overflow:hidden;}
+.bar-fill{width:100%;height:var(--fill-pct,0%);background:var(--navy);border-radius:6px 6px 0 0;transition:height .5s var(--ease),background .15s var(--ease);}
+.bar-col:hover .bar-fill{background:var(--gold);}
+.bar-col.is-selected .bar-fill{background:var(--gold);}
+.bar-count{font-size:11px;color:var(--text-soft);font-weight:600;font-variant-numeric:tabular-nums;}
+.bar-label{font-size:11.5px;color:var(--text-soft);text-align:center;transition:color .15s var(--ease);}
+.bar-col:hover .bar-label,.bar-col.is-selected .bar-label{color:var(--navy);font-weight:600;}
+.bar-clear{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--gold-deep);background:var(--gold-tint);border:none;padding:4px 10px;border-radius:20px;cursor:pointer;margin-top:14px;visibility:hidden;opacity:0;transition:opacity .15s var(--ease);}
+.bar-clear.visible{visibility:visible;opacity:1;}
+
+/* ---------- Activity ---------- */
+.activity-list{list-style:none;}
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-line);}
+.activity-item:last-child{border-bottom:none;padding-bottom:0;}
+.activity-item:first-child{padding-top:0;}
+.activity-dot{width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:6px;flex-shrink:0;}
+.activity-text{font-size:13px;}
+.activity-time{font-size:11px;color:var(--text-faint);margin-top:2px;}
+
+/* ---------- Form ---------- */
+.grid{display:grid;grid-template-columns:328px 1fr;gap:16px;align-items:start;}
+@media (max-width:900px){.grid{grid-template-columns:1fr;}}
+label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;margin-top:14px;}
+label:first-of-type{margin-top:0;}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--gray);border-radius:var(--radius-sm);font-size:13.5px;font-family:'Inter',sans-serif;outline:none;background:var(--white);transition:border-color .15s var(--ease);}
+input:focus,select:focus,textarea:focus{border-color:var(--navy-2);}
+textarea{resize:vertical;min-height:64px;}
+.btn-submit{width:100%;margin-top:18px;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--navy);color:var(--white);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s var(--ease);}
+.btn-submit:hover{background:var(--navy-2);}
+
+/* ---------- Table toolbar ---------- */
+.table-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tt-search{position:relative;flex:1;min-width:160px;}
+.tt-search input{padding-left:32px;}
+.tt-search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--text-faint);pointer-events:none;}
+.tt-select{padding:9px 10px;border:1px solid var(--gray);border-radius:var(--radius-sm);font-size:12.5px;background:var(--white);color:var(--text);min-width:120px;}
+.tt-count{font-size:11.5px;color:var(--text-faint);align-self:center;white-space:nowrap;padding-left:2px;}
+
+/* ---------- Table ---------- */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:520px;}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:0 8px 10px;font-weight:600;white-space:nowrap;}
+th.sortable{cursor:pointer;user-select:none;}
+th.sortable:hover{color:var(--navy);}
+th.sortable .arrow{display:inline-block;width:9px;font-size:9px;opacity:.4;}
+th.sortable.sort-asc .arrow,th.sortable.sort-desc .arrow{opacity:1;color:var(--navy);}
+td{padding:11px 8px;border-top:1px solid var(--gray-line);font-size:13px;vertical-align:middle;}
+tbody tr{transition:background .1s var(--ease);}
+tbody tr:hover{background:var(--surface);}
+.name-cell{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.source-link{font-size:11px;color:var(--text-faint);}
+.source-link:hover{color:var(--navy-2);text-decoration:underline;}
+.sector-pill{display:inline-block;background:var(--navy-tint);color:var(--navy-2);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;}
+.status-pill{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;}
+.status-pill.active{background:var(--green-tint);color:#2C6B2C;}
+.status-pill.inactive{background:#F0EFEA;color:var(--text-soft);}
+.origin-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;white-space:nowrap;}
+.origin-pill.auto{background:var(--gold-tint);color:var(--gold-deep);}
+.origin-pill.manual{background:#F0EFEA;color:var(--text-soft);}
+.row-actions{display:flex;gap:6px;}
+.row-actions form{display:inline;}
+.action-btn{border:1px solid var(--gray);background:var(--white);padding:5px 10px;border-radius:8px;font-size:11.5px;cursor:pointer;transition:.15s var(--ease);color:var(--text);}
+.action-btn:hover{border-color:var(--navy);color:var(--navy);}
+.action-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.action-btn[disabled]{opacity:.55;cursor:progress;}
+
+.empty-state{text-align:center;padding:40px 20px;}
+.empty-state .ic{font-size:26px;margin-bottom:8px;}
+.empty-state p{color:var(--text-soft);font-size:13px;margin-bottom:14px;}
+.empty-state .action-btn{display:inline-block;background:var(--navy);color:#fff;border-color:var(--navy);padding:8px 16px;}
+.empty-state .action-btn:hover{background:var(--navy-2);color:#fff;}
+tr.is-hidden{display:none;}
+
+.pagination{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-line);}
+.pagination .pg-info{font-size:11.5px;color:var(--text-faint);}
+.pagination .pg-btns{display:flex;gap:6px;}
+.pg-btn{border:1px solid var(--gray);background:var(--white);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text);transition:.15s var(--ease);}
+.pg-btn:hover:not(:disabled){border-color:var(--navy);color:var(--navy);}
+.pg-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ---------- Admin dashboard refinement ---------- */
+:root{
+  --navy:#173641; --navy-2:#245462; --navy-tint:#E8F0EF;
+  --gold:#B77C35; --gold-tint:#F7EFDF; --gold-deep:#80551F;
+  --green:#397C68; --green-tint:#E6F2EC;
+  --red:#A6463C; --red-tint:#F8EAE7;
+  --gray:#D8E1DC; --gray-line:#E5EBE7; --surface:#F4F6F3;
+  --text:#1D3034; --text-soft:#617276; --text-faint:#879497; --white:#FFFFFF;
+  --radius:10px; --radius-sm:7px;
+  --shadow-card:0 3px 16px rgba(23,54,65,.045);
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);}
+.sidebar{background:var(--navy);}
+.sidebar-logo{padding-bottom:30px;}
+.sidebar-logo-title,.topbar h1,.stat-value,.panel h2{font-family:'Fraunces',Georgia,serif;letter-spacing:0;}
+.nav-item{border-radius:7px;}
+.nav-item.active{background:rgba(255,255,255,.12);box-shadow:inset 3px 0 0 #D7A450;}
+.nav-count{margin-left:auto;min-width:21px;padding:2px 6px;border-radius:10px;background:#D7A450;color:#173641;text-align:center;font-size:10px;font-weight:700;}
+.topbar{padding:16px 34px;box-shadow:0 1px 0 rgba(23,54,65,.025);}
+.topbar h1{font-size:19px;}
+.content{max-width:1560px;padding-top:28px;}
+.page-intro{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:8px 0 24px;margin-bottom:22px;border-bottom:1px solid var(--gray-line);}
+.page-intro h2{margin:5px 0 4px;font-family:'Fraunces',Georgia,serif;font-size:27px;line-height:1.2;font-weight:500;color:var(--navy);}
+.page-intro p{color:var(--text-soft);font-size:13px;}
+.page-intro .intro-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--green);}
+.intro-action{display:flex;align-items:center;gap:15px;padding:11px 13px 11px 16px;border:1px solid #D9E5DF;border-radius:8px;background:#fff;color:var(--navy);transition:border-color .15s var(--ease),transform .15s var(--ease);}
+.intro-action:hover{border-color:var(--green);transform:translateY(-1px);}
+.intro-action-label{font-size:12px;font-weight:600;}
+.intro-action-count{display:grid;place-items:center;min-width:30px;height:30px;padding:0 8px;border-radius:50%;background:var(--gold-tint);color:var(--gold-deep);font-weight:700;font-size:12px;}
+.stats-row{grid-template-columns:repeat(5,minmax(145px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{position:relative;min-width:0;padding:15px 16px;border-radius:9px;box-shadow:var(--shadow-card);}
+.stat-card:nth-child(1){border-top:2px solid var(--navy-2);}
+.stat-card:nth-child(2){border-top:2px solid var(--green);}
+.stat-card:nth-child(3){border-top:2px solid #B77C35;}
+.stat-card:nth-child(4){border-top:2px solid #648B9A;}
+.stat-card:nth-child(5){border-top:2px solid #9A7050;}
+.stat-icon{width:30px;height:30px;margin-bottom:11px;border-radius:7px;}
+.stat-value{font-size:24px;}
+.stat-label{line-height:1.35;}
+.panel{border-radius:9px;padding:20px;box-shadow:var(--shadow-card);}
+.panel h2{font-size:17px;}
+.panel-head{align-items:center;}
+.panel-hint{padding:4px 8px;border-radius:5px;background:#F3F6F3;}
+#access-requests{border-top:2px solid var(--gold);}
+#access-requests tbody tr:has(select option[value="pending"]:checked){background:#FFFCF5;}
+.action-btn,.btn-submit{border-radius:6px;}
+.action-btn{font-weight:600;}
+.action-btn:hover{background:var(--navy-tint);}
+.action-btn.danger:hover{background:var(--red-tint);}
+input,select,textarea{border-radius:6px;}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(57,124,104,.12);}
+.sector-pill,.status-pill,.origin-pill{border-radius:5px;}
+.table-wrap{border-radius:6px;}
+th{font-size:10px;letter-spacing:.08em;}
+td{line-height:1.45;}
+.pagination{border-color:var(--gray-line);}
+@media (max-width:1100px){.stats-row{grid-template-columns:repeat(3,minmax(145px,1fr));}}
+@media (max-width:720px){
+  .topbar{padding:13px 16px;}
+  .content{padding:20px 16px 40px;}
+  .page-intro{align-items:flex-start;flex-direction:column;gap:14px;padding-bottom:18px;}
+  .page-intro h2{font-size:23px;}
+  .intro-action{width:100%;justify-content:space-between;}
+  .stats-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+  .stat-card{padding:13px;}
+  .panel{padding:16px;}
+}
+@media (max-width:1100px){
+  .two-col,.grid{min-width:0;grid-template-columns:minmax(0,1fr);}
+  .two-col>.panel,.grid>.panel{min-width:0;}
+  .panel-head{flex-wrap:wrap;align-items:flex-start;}
+  .panel-hint{white-space:normal;}
+  .bar-chart{width:100%;min-width:0;overflow-x:auto;}
+  .bar-col{flex:0 0 40px;min-width:40px;}
+  .table-wrap{min-width:0;max-width:100%;}
+}
+@media (max-width:380px){.stats-row{grid-template-columns:1fr 1fr;}.stat-label{font-size:11px;}}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:30px;width:auto;">
+      <div><div class="sidebar-logo-title">MRE AI</div><div class="sidebar-logo-sub">Intelligence au service du pays</div></div>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="nav-item active"><span class="ic">▦</span> Dashboard</a>
+    <a href="{{ url_for('admin_access_requests') }}" class="nav-item"><span class="ic">✉</span> Demandes d'accès{% if stats.pending_users %}<span class="nav-count">{{ stats.pending_users }}</span>{% endif %}</a>
+    <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">⌂</span> Accueil</a>
+    <a href="{{ url_for('opportunities') }}" class="nav-item"><span class="ic">◈</span> Opportunités</a>
+    <a href="{{ url_for('chat_page') }}" class="nav-item"><span class="ic">✦</span> Assistant IA</a>
+    <a href="{{ url_for('observatory') }}" class="nav-item"><span class="ic">👥</span> Observatoire</a>
+    <a href="{{ url_for('home') }}#about" class="nav-item"><span class="ic">i</span> À propos</a>
+    <div class="sidebar-bottom">
+      <a href="{{ url_for('logout') }}" class="nav-item"><span class="ic">⏻</span> Déconnexion</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h1>Espace de pilotage</h1>
+      {% if user %}
+      <div class="who">
+        <div class="who-avatar">{{ user.email[0] | upper }}</div>
+        <span>{{ user.email }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+
+      <section class="page-intro">
+        <div>
+          <p class="intro-kicker">ADMINISTRATION · MRE AI</p>
+          <h2>La plateforme, en un coup d’œil.</h2>
+          <p>Gérez les accès, les talents et les ressources de votre observatoire.</p>
+        </div>
+        <a class="intro-action" href="{{ url_for('admin_access_requests') }}">
+          <span class="intro-action-label">Demandes à examiner</span>
+          <span class="intro-action-count">{{ stats.pending_users }}</span>
+        </a>
+      </section>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon navy">👥</div>
+          <div class="stat-value">{{ stats.total_users }}</div>
+          <div class="stat-label">Comptes utilisateurs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📋</div>
+          <div class="stat-value">{{ stats.total_posts }}</div>
+          <div class="stat-label">Profils talents enregistrés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold">✓</div>
+          <div class="stat-value">{{ stats.active_posts }}</div>
+          <div class="stat-label">Profils visibles publiquement</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold">🤖</div>
+          <div class="stat-value">{{ stats.auto_discovered_posts }}</div>
+          <div class="stat-label">Découverts automatiquement</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon navy">🌍</div>
+          <div class="stat-value">{{ stats.countries }}</div>
+          <div class="stat-label">Pays représentés</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Répartition par domaine</h2>
+            <span class="panel-hint">Cliquez une barre pour filtrer le tableau</span>
+          </div>
+          <div class="bar-chart" id="domainChart">
+            {% for d in domains %}
+            {% set count = stats.domain_counts[d] %}
+            {% set pct = (count / stats.max_domain_count * 100) if stats.max_domain_count else 0 %}
+            <button type="button" class="bar-col" data-domain="{{ d }}" data-pct="{{ pct }}" aria-label="Filtrer sur {{ domain_labels[d] }} ({{ count }} profils)">
+              <span class="bar-count">{{ count }}</span>
+              <div class="bar-track"><div class="bar-fill"></div></div>
+              <span class="bar-label">{{ domain_labels[d] }}</span>
+            </button>
+            {% endfor %}
+          </div>
+          <button type="button" class="bar-clear" id="domainClear">✕ Retirer le filtre domaine</button>
+        </div>
+        <div class="panel">
+          <h2 style="margin-bottom:16px;">Actions rapides</h2>
+          <ul class="activity-list">
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
+                <div class="activity-text">Synchroniser les talents depuis les sources configurées</div>
+                <div class="activity-time">
+                  <form method="POST" action="{{ url_for('sync_talents_admin') }}" id="syncForm">
+                    <button type="submit" class="action-btn" id="syncBtn">Lancer la sync</button>
+                  </form>
+                </div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
+                <div class="activity-text">Indexer les opportunités depuis data/investissement</div>
+                <div class="activity-time">
+                  <form method="POST" action="{{ url_for('ingest_investment_admin') }}" id="ingestForm">
+                    <button type="submit" class="action-btn" id="ingestBtn">Lancer l'ingestion</button>
+                  </form>
+                </div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
+                <div class="activity-text">{{ stats.inactive_posts }} profils masqués</div>
+                <div class="activity-time">Gérez la visibilité publique depuis la liste ci-dessous.</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
+                <div class="activity-text">{{ stats.with_experience }} profils avec expérience renseignée</div>
+                <div class="activity-time">Ajoutez des compétences et des années d'expérience pour renforcer la recherche.</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <h2 style="margin-bottom:16px;">Activité récente</h2>
+          <ul class="activity-list">
+            {% for post in recent %}
+            <li class="activity-item">
+              <div class="activity-dot"></div>
+              <div>
+                <div class="activity-text">
+                  Profil « {{ post.title }} » ajouté ({{ post.sector_label() }})
+                  {% if post.auto_discovered %}<span class="origin-pill auto">🤖 Auto-découvert</span>{% else %}<span class="origin-pill manual">✍️ Manuel</span>{% endif %}
+                </div>
+                <div class="activity-time">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+              </div>
+            </li>
+            {% else %}
+            <li class="activity-item"><div class="activity-text" style="color:var(--text-soft);">Aucune activité pour le moment.</div></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <h2 style="margin-bottom:4px;">Ajouter un profil</h2>
+          <p class="panel-hint" style="margin-bottom:14px;">Réservé aux cas particuliers — l'Observatoire se remplit automatiquement.</p>
+          <form method="POST" action="{{ url_for('add_post') }}">
+            <label for="title">Nom</label>
+            <input type="text" id="title" name="title" placeholder="Ex : Youssef El Amrani" required>
+
+            <label for="sector">Domaine</label>
+            <select id="sector" name="sector" required>
+              {% for d in domains %}<option value="{{ d }}">{{ domain_labels[d] }}</option>{% endfor %}
+            </select>
+
+            <label for="country">Pays</label>
+            <input type="text" id="country" name="country" placeholder="Ex : France">
+
+            <label for="years_experience">Années d'expérience</label>
+            <input type="number" id="years_experience" name="years_experience" min="0" placeholder="Ex : 5">
+
+            <label for="expertise_tags">Compétences (séparées par une virgule)</label>
+            <input type="text" id="expertise_tags" name="expertise_tags" placeholder="Ex : Java, Backend, Spring">
+
+            <label for="description">Description</label>
+            <textarea id="description" name="description" placeholder="Court résumé du profil"></textarea>
+
+            <button type="submit" class="btn-submit">Publier le profil talent</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-bottom:16px;">Profils talents publiés</h2>
+
+          <div class="table-toolbar">
+            <div class="tt-search">
+              <span class="ic">⌕</span>
+              <input type="text" id="ttSearch" placeholder="Rechercher un nom, un tag, un pays…" autocomplete="off">
+            </div>
+            <select class="tt-select" id="ttStatus">
+              <option value="">Tous les statuts</option>
+              <option value="approved">Validé</option>
+              <option value="masked">Profil masqué</option>
+            </select>
+            <select class="tt-select" id="ttOrigin">
+              <option value="">Toutes origines</option>
+              <option value="auto">🤖 Auto-découvert</option>
+              <option value="manual">✍️ Manuel</option>
+            </select>
+            <span class="tt-count" id="ttCount"></span>
+            <button type="button" class="action-btn" id="ttExport" title="Exporter les profils affichés en CSV">⬇ Export CSV</button>
+          </div>
+
+          <div class="table-wrap">
+            <table id="postsTable">
+              <thead>
+                <tr>
+                  <th class="sortable" data-key="name">Nom <span class="arrow">↕</span></th>
+                  <th class="sortable" data-key="sector">Domaine <span class="arrow">↕</span></th>
+                  <th class="sortable" data-key="xp">XP <span class="arrow">↕</span></th>
+                  <th>Statut</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="postsBody">
+                {% for post in posts %}
+                <tr
+                  data-name="{{ post.title|lower }}"
+                  data-sector="{{ post.sector }}"
+                  data-xp="{{ post.years_experience if post.years_experience is not none else -1 }}"
+                  data-status="{{ post.review_status }}"
+                  data-origin="{{ 'auto' if post.auto_discovered else 'manual' }}"
+                  data-search="{{ post.title|lower }} {{ post.country|lower if post.country else '' }} {{ post.expertise_tags|lower if post.expertise_tags else '' }}"
+                >
+                  <td>
+                    <div class="name-cell">
+                      <span>{{ post.title }}</span>
+                      {% if post.auto_discovered %}
+                        <span class="origin-pill auto" title="Découvert automatiquement par les agents (RSS / web / GitHub)">🤖 Auto</span>
+                      {% else %}
+                        <span class="origin-pill manual" title="Ajouté manuellement par un administrateur">✍️ Manuel</span>
+                      {% endif %}
+                      {% if post.source_url %}
+                        <a href="{{ post.source_url }}" target="_blank" rel="noopener" class="source-link" title="Voir la source">↗ source</a>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td><span class="sector-pill">{{ post.sector_label() }}</span></td>
+                  <td>{{ post.years_experience if post.years_experience is not none else '—' }}</td>
+                  <td>
+                    <span class="status-pill {{ 'active' if post.review_status == 'approved' else 'inactive' }}">
+                      {{ 'Validé' if post.review_status == 'approved' else ('Profil masqué' if post.review_status == 'masked' else post.review_status|capitalize) }}
+                    </span>
+                    {% if post.confidence_score is not none %}<small>{{ post.confidence_score }}/100</small>{% endif %}
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      {% if post.review_status in ['approved', 'masked'] %}
+                      <form method="POST" action="{{ url_for('toggle_post', post_id=post.id) }}">
+                        <button type="submit" class="action-btn">{{ 'Masquer' if post.review_status == 'approved' else 'Valider' }}</button>
+                      </form>
+                      {% endif %}
+                      <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" onsubmit="return confirm('Supprimer ce profil ?');">
+                        <button type="submit" class="action-btn danger">Supprimer</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% else %}
+                <tr class="empty-row-tpl" style="display:none;"></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            {% if not posts %}
+            <div class="empty-state">
+              <div class="ic">🕊️</div>
+              <p>Aucun profil pour le moment. Lancez une synchronisation pour que les agents commencent à découvrir des talents.</p>
+              <form method="POST" action="{{ url_for('sync_talents_admin') }}">
+                <button type="submit" class="action-btn">Lancer la première synchronisation</button>
+              </form>
+            </div>
+            {% endif %}
+
+            <p id="noResults" class="empty-state" style="display:none;">
+              <span class="ic" style="display:block;">🔍</span>
+              Aucun profil ne correspond à ces filtres.
+            </p>
+          </div>
+
+          {% if posts %}
+          <div class="pagination" id="pagination">
+            <span class="pg-info" id="pgInfo"></span>
+            <div class="pg-btns">
+              <button type="button" class="pg-btn" id="pgPrev" aria-label="Page précédente">‹</button>
+              <button type="button" class="pg-btn" id="pgNext" aria-label="Page suivante">›</button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Applique la hauteur des barres depuis data-pct (evite tout Jinja dans style=)
+  document.querySelectorAll('#domainChart .bar-col[data-pct]').forEach(function(btn){
+    var fill = btn.querySelector('.bar-fill');
+    if (fill) fill.style.setProperty('--fill-pct', btn.dataset.pct + '%');
+  });
+})();
+
+(function(){
+  var tbody = document.getElementById('postsBody');
+  var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-name]'));
+  if (!allRows.length) return;
+
+  var searchInput = document.getElementById('ttSearch');
+  var statusSelect = document.getElementById('ttStatus');
+  var originSelect = document.getElementById('ttOrigin');
+  var countEl = document.getElementById('ttCount');
+  var noResultsEl = document.getElementById('noResults');
+  var pgInfo = document.getElementById('pgInfo');
+  var pgPrev = document.getElementById('pgPrev');
+  var pgNext = document.getElementById('pgNext');
+  var pagination = document.getElementById('pagination');
+
+  var PAGE_SIZE = 8;
+  var state = { domain: '', status: '', origin: '', query: '', sortKey: null, sortDir: 1, page: 1 };
+  var lastVisibleRows = [];
+
+  function applyFilters(){
+    var q = state.query.trim().toLowerCase();
+    var visible = allRows.filter(function(row){
+      if (state.domain && row.dataset.sector !== state.domain) return false;
+      if (state.status && row.dataset.status !== state.status) return false;
+      if (state.origin && row.dataset.origin !== state.origin) return false;
+      if (q && row.dataset.search.indexOf(q) === -1) return false;
+      return true;
+    });
+
+    if (state.sortKey){
+      visible.sort(function(a,b){
+        var key = state.sortKey === 'name' ? 'name' : (state.sortKey === 'xp' ? 'xp' : 'sector');
+        var av = state.sortKey === 'xp' ? parseInt(a.dataset.xp,10) : a.dataset[key];
+        var bv = state.sortKey === 'xp' ? parseInt(b.dataset.xp,10) : b.dataset[key];
+        if (av < bv) return -1 * state.sortDir;
+        if (av > bv) return 1 * state.sortDir;
+        return 0;
+      });
+    }
+
+    lastVisibleRows = visible;
+    allRows.forEach(function(row){ row.classList.add('is-hidden'); });
+
+    var total = visible.length;
+    var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
+    var start = (state.page - 1) * PAGE_SIZE;
+    var pageRows = visible.slice(start, start + PAGE_SIZE);
+
+    pageRows.forEach(function(row){
+      row.classList.remove('is-hidden');
+      tbody.appendChild(row);
+    });
+
+    countEl.textContent = total + (total > 1 ? ' profils' : ' profil');
+    noResultsEl.style.display = total === 0 ? 'block' : 'none';
+
+    if (pagination){
+      pagination.style.display = total > PAGE_SIZE ? 'flex' : 'none';
+      pgInfo.textContent = total === 0 ? '' : ('Page ' + state.page + ' / ' + totalPages + ' — ' + total + ' résultat(s)');
+      pgPrev.disabled = state.page <= 1;
+      pgNext.disabled = state.page >= totalPages;
+    }
+  }
+
+  searchInput.addEventListener('input', function(){ state.query = this.value; state.page = 1; applyFilters(); });
+  statusSelect.addEventListener('change', function(){ state.status = this.value; state.page = 1; applyFilters(); });
+  originSelect.addEventListener('change', function(){ state.origin = this.value; state.page = 1; applyFilters(); });
+
+  if (pgPrev) pgPrev.addEventListener('click', function(){ state.page--; applyFilters(); });
+  if (pgNext) pgNext.addEventListener('click', function(){ state.page++; applyFilters(); });
+
+  document.querySelectorAll('th.sortable').forEach(function(th){
+    th.addEventListener('click', function(){
+      var key = th.dataset.key;
+      if (state.sortKey === key){ state.sortDir *= -1; } else { state.sortKey = key; state.sortDir = 1; }
+      document.querySelectorAll('th.sortable').forEach(function(h){ h.classList.remove('sort-asc','sort-desc'); });
+      th.classList.add(state.sortDir === 1 ? 'sort-asc' : 'sort-desc');
+      applyFilters();
+    });
+  });
+
+  // Graphique par domaine <-> tableau
+  var chart = document.getElementById('domainChart');
+  var clearBtn = document.getElementById('domainClear');
+  if (chart){
+    chart.querySelectorAll('.bar-col').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var domain = btn.dataset.domain;
+        if (state.domain === domain){
+          state.domain = '';
+          btn.classList.remove('is-selected');
+        } else {
+          chart.querySelectorAll('.bar-col').forEach(function(b){ b.classList.remove('is-selected'); });
+          state.domain = domain;
+          btn.classList.add('is-selected');
+        }
+        clearBtn.classList.toggle('visible', !!state.domain);
+        state.page = 1;
+        applyFilters();
+        if (state.domain){
+          document.getElementById('postsTable').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    });
+    clearBtn.addEventListener('click', function(){
+      state.domain = '';
+      chart.querySelectorAll('.bar-col').forEach(function(b){ b.classList.remove('is-selected'); });
+      clearBtn.classList.remove('visible');
+      state.page = 1;
+      applyFilters();
+    });
+  }
+
+  var exportBtn = document.getElementById('ttExport');
+  if (exportBtn){
+    exportBtn.addEventListener('click', function(){
+      if (!lastVisibleRows.length){ return; }
+      var csvEscape = function(v){ return '"' + String(v).replace(/"/g, '""') + '"'; };
+      var header = ['Nom', 'Domaine', 'XP', 'Statut', 'Origine'].map(csvEscape).join(',');
+      var lines = lastVisibleRows.map(function(row){
+        var name = row.querySelector('.name-cell span') ? row.querySelector('.name-cell span').textContent.trim() : '';
+        var sector = row.querySelector('.sector-pill') ? row.querySelector('.sector-pill').textContent.trim() : '';
+        var xp = row.dataset.xp === '-1' ? '' : row.dataset.xp;
+        var status = row.dataset.status === 'approved' ? 'Validé' :
+          (row.dataset.status === 'masked' ? 'Profil masqué' : row.dataset.status);
+        var origin = row.dataset.origin === 'auto' ? 'Auto-découvert' : 'Manuel';
+        return [name, sector, xp, status, origin].map(csvEscape).join(',');
+      });
+      var csv = '\uFEFF' + [header].concat(lines).join('\r\n');
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'observatoire_talents_' + new Date().toISOString().slice(0,10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  applyFilters();
+})();
+
+// Feedback visuel sur le bouton de synchronisation (la requête recharge la page)
+var syncForm = document.getElementById('syncForm');
+if (syncForm){
+  syncForm.addEventListener('submit', function(){
+    var btn = document.getElementById('syncBtn');
+    btn.textContent = 'Synchronisation…';
+    btn.disabled = true;
+  });
+}
+var ingestForm = document.getElementById('ingestForm');
+if (ingestForm){
+  ingestForm.addEventListener('submit', function(){
+    var btn = document.getElementById('ingestBtn');
+    btn.textContent = 'Ingestion…';
+    btn.disabled = true;
+  });
+}
+</script>
+
+</body>
+</html>

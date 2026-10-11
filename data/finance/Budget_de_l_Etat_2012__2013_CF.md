@@ -1,0 +1,26 @@
+<!-- PAGE 0 -->
+
+# Budget de l'Etat 2012, 2013 — CF
+
+*Fichier source : Budget de l'Etat 2012, 2013.xls*
+
+|   Unnamed: 0 |   Unnamed: 1 | Unnamed: 2                                                        | Unnamed: 3                                                      | Unnamed: 4     | Unnamed: 5   | Unnamed: 6                    | Unnamed: 7     | Unnamed: 8   |
+|-------------:|-------------:|:------------------------------------------------------------------|:----------------------------------------------------------------|:---------------|:-------------|:------------------------------|:---------------|:-------------|
+|          nan |          nan | nan                                                               | nan                                                             | nan            | nan          | nan                           | nan            | nan          |
+|          nan |          nan | nan                                                               | nan                                                             | nan            | nan          | nan                           | nan            | nan          |
+|          nan |          nan | nan                                                               | REPARTITION DES DEPENSES DU BUDGET GENERAL PAR CODE FONCTIONNEL | nan            | nan          | nan                           | nan            | nan          |
+|          nan |          nan | nan                                                               | ANNEE 2012 ET 2013                                              | nan            | nan          | nan                           | nan            | nan          |
+|          nan |          nan | nan                                                               | nan                                                             | nan            | nan          | nan                           | nan            | nan          |
+|          nan |          nan | CODE FONCTIONNEL                                                  | 2012                                                            | nan            | nan          | 2013                          | nan            | nan          |
+|          nan |          nan | nan                                                               | Matériel et Dépenses Diverses                                   | Investissement | Total        | Matériel et Dépenses Diverses | Investissement | Total        |
+|          nan |          nan | 0:Dépenses non réparties et non fonctionnelles.                   | nan                                                             | 5000000        | 5000000      | nan                           | 3000000        | 3000000      |
+|          nan |          nan | 1:Pouvoirs publics et services généraux                           | 9388895580                                                      | 5672578651     | 15061474231  | 9500460188                    | 5194049129     | 14694509317  |
+|          nan |          nan | 2:Défense Nationale                                               | 3726060750                                                      | 4106000000     | 7832060750   | 3766143250                    | 4395000000     | 8161143250   |
+|          nan |          nan | 3:Enseignement, formation professionnelle et formation des cadres | 5879321380                                                      | 6151687200     | 12031008580  | 6045017636                    | 5681273000     | 11726290636  |
+|          nan |          nan | 4:Culte, culture, information et activités socio-éducatives       | 2150809000                                                      | 3195365000     | 5346174000   | 2323151110                    | 2852939000     | 5176090110   |
+|          nan |          nan | 5:Santé                                                           | 3366655000                                                      | 2168287500     | 5534942500   | 3888955000                    | 2050200000     | 5939155000   |
+|          nan |          nan | 6:Autres actions sociales.                                        | 2482482590                                                      | 1746038709     | 4228521299   | 2379465816                    | 2050166521     | 4429632337   |
+|          nan |          nan | 7:Agriculture, forêts et pêche                                    | 1167672500                                                      | 7813532300     | 8981204800   | 1195620700                    | 8082709450     | 9278330150   |
+|          nan |          nan | 8:Transports, communications et autres infrastructures            | 225218500                                                       | 7145768000     | 7370986500   | 231768500                     | 7109161000     | 7340929500   |
+|          nan |          nan | 9:Autres actions économiques                                      | 661534700                                                       | 2600104640     | 3261639340   | 853466800                     | 2818867900     | 3672334700   |
+|          nan |          nan | TOTAL Code fonctionnel                                            | 29048650000                                                     | 40604362000    | 69653012000  | 30184049000                   | 40237366000    | 70421415000  |

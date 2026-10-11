@@ -1,0 +1,128 @@
+Projet : MRE AI / Sanad AI
+========================================
+
+Description générale
+-------------------
+Ce projet est une application web et une API intelligente dédiée à l’assistance juridique, fiscale et immobilière pour les Marocains Résidant à l’Étranger (MRE). Son objectif principal est de permettre à un utilisateur de poser des questions en français ou en arabe sur des sujets liés au droit immobilier marocain, et de recevoir des réponses fiables, structurées et citées à partir de sources officielles marocaines.
+
+Le système ne se contente pas de générer une réponse à partir d’un modèle de langage général. Il fonctionne selon une architecture de type RAG (Retrieval-Augmented Generation), ce qui signifie qu’il récupère d’abord des passages pertinents à partir d’une base de connaissances locale, puis construit une réponse en s’appuyant uniquement sur ces sources. Cette approche permet de réduire fortement les hallucinations et d’améliorer la fiabilité des réponses.
+
+Objectif du projet
+-----------------
+L’objectif du projet est de créer un assistant intelligent capable de répondre à des questions juridiques et fiscales sur l’immobilier marocain, avec une forte exigence de précision, de traçabilité et de conformité aux textes officiels. Le système a été conçu pour aider les MRE à comprendre des sujets sensibles tels que :
+
+- les règles liées à l’achat immobilier au Maroc,
+- les obligations fiscales,
+- les démarches administratives,
+- les questions liées à la propriété, la conservation foncière et la fiscalité immobilière,
+- les informations juridiques formulées dans un langage accessible.
+
+Le projet vise donc à transformer une base documentaire juridique complexe en un outil conversationnel moderne, simple à utiliser et basé sur des documents crédibles.
+
+Fonctionnement global
+---------------------
+Le système fonctionne en plusieurs étapes :
+
+1. Collecte et préparation des documents
+   Les documents sources sont généralement des fichiers PDF ou des fichiers Markdown. Avant leur intégration dans la base de connaissances, ils sont nettoyés et préparés pour éliminer les artefacts inutiles tels que les en-têtes, pieds de page, numéros de page, tables des matières ou autres éléments parasites.
+
+2. Extraction du contenu
+   Les fichiers PDF sont transformés en texte structuré, puis convertis en Markdown propre. Cette étape est essentielle pour permettre une bonne indexation et une meilleure exploitation par le moteur de recherche sémantique.
+
+3. Indexation dans une base vectorielle
+   Les textes extraits sont découpés en chunks et transformés en embeddings à l’aide d’un modèle de langage multilingue. Ces embeddings sont ensuite stockés dans une base vectorielle locale appelée ChromaDB.
+
+4. Recherche sémantique
+   Lorsqu’un utilisateur pose une question, le système recherche les fragments de texte les plus proches de la requête en utilisant la similarité vectorielle. Seuls les documents pertinent et proches de la question sont conservés.
+
+5. Génération de la réponse
+   Le système injecte ces passages dans un prompt dédié à un modèle de langage (via OpenRouter) et demande au modèle de répondre uniquement à partir de ce contexte. La réponse est ensuite renvoyée à l’utilisateur sous forme de texte Markdown, avec des citations des sources utilisées.
+
+Architecture du projet
+----------------------
+Le projet est organisé autour de plusieurs modules complémentaires.
+
+- main.py :
+  C’est le cœur de l’application web et de l’API. Il contient la logique FastAPI, les routes web, les endpoints de chat, la gestion des événements streaming SSE et la mise en place de l’interface utilisateur.
+
+- rag_engine.py :
+  Ce module contient le moteur RAG. Il gère la recherche sémantique dans la base ChromaDB, applique un filtrage par métadonnées et contrôle la similarité pour éviter les réponses non pertinentes.
+
+- ingest.py :
+  Ce fichier permet d’ingérer les documents dans la base vectorielle. Il transforme les documents disponibles dans le dossier data en données indexées prêtes à être recherchées.
+
+- clean_pdf.py :
+  Ce module sert à nettoyer les PDF bruts et produire des versions plus propres sous forme de Markdown. Il améliore la qualité de l’extraction et réduit les erreurs de traitement.
+
+- config.py :
+  Ce fichier centralise la configuration générale du projet, notamment les clés d’API, les paramètres du modèle de langage, les réglages ChromaDB, le seuil de similarité et d’autres valeurs de configuration.
+
+- models.py :
+  Il contient les modèles Pydantic utilisés pour valider les requêtes API, notamment la structure des messages envoyés au service de chat.
+
+- templates/ :
+  Ce dossier contient les interfaces web HTML/Jinja2 utilisées par l’application.
+
+- static/ :
+  Il contient les ressources statiques du site, telles que les images ou autres fichiers associés à l’interface.
+
+Fonctionnalités principales
+---------------------------
+Le projet offre plusieurs fonctionnalités importantes :
+
+- Chat interactif avec un agent IA spécialisé dans l’immobilier marocain ;
+- Réponses en streaming temps réel, c’est-à-dire que le texte s’affiche progressivement à mesure qu’il est généré ;
+- Interface web complète avec des pages d’accueil, de chat, d’observatoire, de connexion et d’administration ;
+- Support multilingue en français et en arabe ;
+- Réponses construites uniquement à partir d’une base de connaissance locale ;
+- Citations explicites des sources utilisées pour chaque réponse ;
+- Filtrage anti-hallucination basé sur la similarité sémantique et la conformité au contexte ;
+- Ingestion idempotente des documents, ce qui évite la duplication des données lorsqu’un fichier est mis à jour.
+
+Technologies utilisées
+----------------------
+Le projet repose sur une stack moderne de développement Python et d’intelligence artificielle :
+
+- FastAPI : pour créer l’API web et les routes d’accès.
+- Uvicorn : comme serveur ASGI performant.
+- Jinja2 : pour le rendu des templates HTML.
+- Pydantic : pour la validation des requêtes.
+- ChromaDB : pour la recherche vectorielle et l’indexation sémantique.
+- BAAI/bge-m3 : pour les embeddings multilingues.
+- LangChain Hugging Face : pour l’intégration des embeddings.
+- PyMuPDF et PyMuPDF4LLM : pour l’extraction et la transformation des PDF.
+- OpenRouter : pour l’accès à un modèle de langage externe utilisé pour générer les réponses.
+- Python-dotenv : pour la gestion des variables d’environnement.
+
+Avantages du projet
+-------------------
+Ce projet présente plusieurs atouts majeurs :
+
+- Il fournit une réponse rapide et contextualisée à des questions juridiques complexes ;
+- Il repose sur des sources documentaires officielles, ce qui renforce la fiabilité ;
+- Il est adapté à un usage professionnel ou démonstratif dans le domaine de l’immobilier marocain ;
+- Il limite les erreurs de fabrication de contenu grâce à son architecture RAG ;
+- Il propose une expérience utilisateur moderne avec des réponses en temps réel.
+
+Limites et axes d’amélioration
+------------------------------
+Bien que le projet soit déjà fonctionnel et structuré, certaines limites restent visibles :
+
+- L’observatoire n’est pas encore complètement implémenté ;
+- L’authentification et la gestion des utilisateurs sont encore limitées ;
+- L’interface d’administration est partielle ;
+- Le modèle de langage utilisé via OpenRouter dépend de la disponibilité de la clé API et du quota gratuit du fournisseur.
+
+Perspectives de développement
+-----------------------------
+Le projet peut évoluer vers :
+
+- une base documentaire plus large et plus complète,
+- une meilleure gestion des profils utilisateurs,
+- une interface plus riche et plus intuitive,
+- une intégration plus avancée avec des bases de données métier,
+- une prise en charge encore plus robuste des documents juridiques multilingues.
+
+En résumé
+---------
+Ce projet est un assistant intelligent dédié à l’immobilier marocain pour les MRE. Il combine l’intelligence artificielle, la recherche sémantique, l’extraction de documents et l’API web pour offrir une expérience moderne et fiable d’assistance juridique et fiscale. Son architecture repose sur un système RAG, ce qui garantit que les réponses sont produites à partir de sources documentaires pertinentes plutôt que de simples généralisations.

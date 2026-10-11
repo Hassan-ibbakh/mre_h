@@ -1,0 +1,47 @@
+# ===== Sanad AI — Backend FastAPI (agent immobilier MRE) =====
+
+# --- API ---
+fastapi>=0.115.12
+uvicorn[standard]==0.51.0
+pydantic>=2.11.10,<=2.12.5
+pydantic-settings==2.14.2
+httpx==0.28.1
+
+# --- RAG / Embeddings locaux (FR + AR : BAAI/bge-m3) ---
+# NOTE : le Dockerfile installe d'abord torch==2.13.0 depuis l'index CPU.
+# La même version est déclarée pour les déploiements uv/Vercel, dont l'index
+# CPU est configuré dans pyproject.toml.
+# Compatibilité Hugging Face Spaces (base image gradio 6.24 : hub>=1.16) :
+#   - transformers >=5.0 requiert huggingface-hub<2.0,>=1.3 (les 4.x exigent <1.0)
+#   - sentence-transformers >=5.2.1 autorise transformers v5
+chromadb==1.5.9
+langchain-core==0.3.29
+langchain-huggingface==0.1.2
+langchain-text-splitters==0.3.0
+huggingface-hub>=1.16.0,<2.0
+transformers==5.15.0
+sentence-transformers==5.6.1
+torch==2.13.0
+
+# --- Observatoire des Talents MRE (agents LangChain + OpenRouter) ---
+langchain-openai==0.2.14
+openai==1.58.1
+tavily-python==0.5.0
+requests==2.32.3
+
+# --- Extraction PDF -> Markdown ---
+pymupdf==1.28.0
+pymupdf4llm==1.28.0
+
+# --- Authentification / base de données ---
+bcrypt==4.2.1
+sqlalchemy==2.0.36
+
+# --- Observabilité ---
+loguru==0.7.3
+
+# --- Interface web (templates/ et static/ historiques) ---
+Jinja2==3.1.6
+
+# --- Divers ---
+python-dotenv==1.0.1

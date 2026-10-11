@@ -1,0 +1,795 @@
+DESCRIPTION DETAILLEE DES DEUX AGENTS MRE
+============================================
+
+Version du document
+-------------------
+Ce document decrit le fonctionnement actuel du projet MRE AI pour les deux
+agents de l'Observatoire des Talents MRE :
+
+1. l'agent de collecte et de validation des talents ;
+2. l'agent de recherche de l'Observatoire, utilise par les utilisateurs.
+
+Les deux agents ont des roles differents. Le premier cherche et enregistre des
+profils. Le second recherche des profils deja enregistres et repond a une
+demande utilisateur.
+
+
+ARCHITECTURE GENERALE
+=====================
+
+Le flux complet est le suivant :
+
+    Sources externes
+        |
+        v
+    Agent de collecte
+        |
+        v
+    Filtrage MRE et validation LLM
+        |
+        v
+    Base SQLite : table post
+        |
+        v
+    Agent Observatoire
+        |
+        v
+    Recherche utilisateur et affichage des profils approuves
+
+Fichiers principaux :
+
+- observatoire/talent_scout_agent.py
+  Agent de collecte, outils de recherche et validation des candidats.
+
+- observatoire/talent_extractor_llm.py
+  Analyse LLM d'un article ou d'un contenu et extraction du profil.
+
+- observatoire/talent_monitor.py
+  Lecture RSS, deduplication et orchestration de la decouverte.
+
+- observatoire/talent_web_search.py
+  Recherche Tavily Web et Tavily News.
+
+- observatoire/orcid_source.py
+  Recherche structuree dans l'API ORCID.
+
+- talent_sync.py
+  Enregistrement des profils decouverts dans la base.
+
+- observatoire/observatory_agent.py
+  Agent qui recherche les profils dans la base pour repondre aux utilisateurs.
+
+- main.py
+  Routes API, recherche dans la base, pages publiques et dashboard admin.
+
+- database.py
+  Modele Post, statuts, score de confiance et cache.
+
+
+1. AGENT DE COLLECTE DES TALENTS
+================================
+
+Role
+----
+L'agent de collecte cherche de nouveaux talents marocains residant ou actifs
+a l'etranger. Il collecte des pistes depuis plusieurs sources, elimine les
+doublons, demande une validation LLM pour les sources textuelles, puis renvoie
+les profils valides vers la synchronisation de la base.
+
+Fonction principale :
+
+    run_talent_scout_agent()
+
+Cette fonction est appelee par :
+
+    discover_talents_from_sources()
+
+puis par :
+
+    sync_talents_dynamic()
+
+La synchronisation est declenchee depuis le bouton admin. Elle peut aussi etre
+executee automatiquement si ENABLE_DAILY_SYNC est active.
+
+
+Sources utilisees
+-----------------
+
+A. Tavily Web
+
+Tavily Web recherche les talents par domaine. Les domaines configur es sont :
+
+- tech : ingenieurs, startups, developpeurs et IA ;
+- health : chercheurs, medecins et innovation sante ;
+- education : professeurs, universitaires et enseignants ;
+- agriculture : agritech, agriculture et entrepreneurs agricoles ;
+- industry : industrie, manufacturing et ingenieurs ;
+- finance : finance, fintech et investissement ;
+- creative : artistes et profils creatifs ;
+- social : entrepreneuriat social, ONG et impact ;
+- other : talents generaux, entrepreneurs et laureats.
+
+La constante actuelle est :
+
+    MAX_RESULTS_PER_DOMAIN = 4
+
+Le filtre preliminaire verifie qu'un resultat contient au moins un indicateur
+MRE comme Marocain, diaspora, etranger, expatrie ou MRE. Ce filtre est local et
+ne consomme pas de tokens LLM.
+
+Outil agent utilise :
+
+    search_sector(domain)
+
+B. Tavily News
+
+Tavily News recherche des articles recents sur les talents marocains a
+l'etranger. Les requetes couvrent notamment :
+
+- recompense ou distinction a l'etranger ;
+- reussite entrepreneuriale MRE ;
+- chercheur marocain et publication scientifique ;
+- startup fondee par un Marocain a l'etranger ;
+- Marocain classe parmi les meilleurs ;
+- diaspora marocaine ;
+- ingenieur installe en France, Canada ou Allemagne ;
+- chercheur dans une universite etrangere ;
+- entrepreneur a Silicon Valley, Dubai ou Londres.
+
+Configuration actuelle :
+
+    MAX_RESULTS_PER_NEWS_QUERY = 3
+    NEWS_RECENCY_DAYS = 60
+    topic = "news"
+
+Outil agent utilise :
+
+    search_news()
+
+C. RSS
+
+Les flux RSS sont lus depuis :
+
+    data/talent_sources.json
+
+Les sources actuellement configurees sont :
+
+- Aujourd'hui le Maroc ;
+- La Nouvelle Tribune ;
+- Le Matin - Activites Royales ;
+- Le Matin - Afrique Developpement ;
+- OujdaCity ;
+- Morocco Times TV.
+
+Pour chaque flux, le code :
+
+1. telecharge le XML avec un timeout ;
+2. verifie que le XML est lisible ;
+3. extrait le titre, la description et le lien ;
+4. cherche un indicateur MRE ;
+5. cherche un mot-cle talent comme chercheur, entrepreneur, prix,
+   innovation ou startup ;
+6. transmet les pistes retenues a l'etape suivante.
+
+Outil agent utilise :
+
+    search_rss()
+
+D. ORCID
+
+ORCID est une source structuree pour les chercheurs. Contrairement a Tavily et
+RSS, ORCID fournit des informations structurees sur les affiliations, les pays
+et les donnees declarees dans le profil.
+
+Les domaines ORCID utilises sont :
+
+- health ;
+- education ;
+- tech ;
+- agriculture ;
+- industry ;
+- other.
+
+ORCID verifie localement :
+
+- la presence d'une origine ou d'un lien marocain ;
+- une affiliation ou une activite dans un pays etranger ;
+- le pays etranger actuel ;
+- les doublons ;
+- le cache de l'URL ORCID.
+
+Les profils ORCID valides sont ajoutes directement aux profils decouverts sans
+passer par une validation LLM supplementaire. Ils recoivent un score de
+confiance de 100.
+
+Configuration actuelle :
+
+    MAX_RESULTS_PER_DOMAIN = 8
+    MAX_ORCID_CALLS = 1 par cycle de l'agent
+
+Outil agent utilise :
+
+    search_orcid()
+
+
+Collecte systematique a chaque cycle
+-------------------------------------
+
+L'agent peut d'abord explorer les sources avec son raisonnement LLM. Ensuite,
+le code execute une collecte deterministe complete, meme si l'agent a deja
+trouve des profils.
+
+Cette collecte appelle :
+
+1. Tavily Web pour chacun des 9 domaines ;
+2. Tavily News ;
+3. RSS ;
+4. ORCID.
+
+Ainsi, un cycle ne depend pas uniquement du choix de l'agent. Tous les domaines
+Web sont parcourus avant la fin du cycle.
+
+Si ORCID a deja ete appele par l'agent pendant le meme cycle, le garde-fou
+MAX_ORCID_CALLS evite un appel ORCID redondant.
+
+
+Deduplication et cache
+----------------------
+
+Avant d'ajouter une piste, le code compare :
+
+- l'URL avec les URLs deja connues ;
+- le nom normalise avec les noms deja connus ;
+- les profils deja presents en base ;
+- les URLs deja enregistrees dans ProfileCache.
+
+L'outil utilise pour la verification locale est :
+
+    check_duplicate(name)
+
+Le cache conserve notamment le statut de traitement :
+
+- approved ;
+- rejected ;
+- pending ;
+- masked selon le traitement utilise.
+
+Le cache evite de reenvoyer inutilement les memes URLs a l'analyse. Les logs
+comme celui-ci montrent que le cache est utilise :
+
+    ORCID: profil deja en cache (rejected) -- saute
+    ORCID: profil deja en cache (approved) -- saute
+
+Le nettoyage du cache est execute au debut d'un cycle selon
+CACHE_RETENTION_DAYS.
+
+
+Validation LLM des sources textuelles
+-------------------------------------
+
+Les resultats Tavily Web, Tavily News et RSS sont des textes bruts. Ils ne sont
+pas enregistres directement comme profils. Ils sont envoyes a :
+
+    extract_talent_profile()
+
+Le prompt demande un objet JSON contenant notamment :
+
+- is_talent ;
+- confidence ;
+- name ;
+- sector ;
+- country ;
+- expertise_tags ;
+- years_experience ;
+- short_bio.
+
+Le LLM doit confirmer qu'il s'agit :
+
+- d'une personne identifiable ;
+- d'une personne marocaine ou d'origine marocaine ;
+- d'une personne residant ou travaillant actuellement a l'etranger ;
+- d'un seul profil et non d'une liste de personnes ;
+- d'un vrai talent et non d'une entreprise, d'un evenement ou d'une actualite
+  generale.
+
+Le pays de residence ou d'activite doit etre etranger. Le Maroc ne doit pas
+etre utilise comme pays de residence MRE.
+
+Le score LLM est recu sous forme decimale, par exemple 0.59. Le code le
+convertit en score de 0 a 100 :
+
+    0.59 -> 59
+    0.80 -> 80
+    1.00 -> 100
+
+Les scores inferieurs a 0.40 ne sont pas conserves par l'extracteur. Les scores
+compris entre 0.40 et 0.59 peuvent devenir des profils masked. Les scores d'au
+moins 0.60 deviennent approved.
+
+
+Statuts et enregistrement
+-------------------------
+
+La classification utilise les seuils suivants :
+
+    score >= 60       -> approved
+    40 <= score < 60  -> masked
+    score < 40        -> rejected
+
+Le champ persistant est :
+
+    Post.confidence_score
+
+Le statut persistant est :
+
+    Post.review_status
+
+Lors de la synchronisation :
+
+- un profil approved est actif et peut etre public ;
+- un profil masked est conserve pour l'administration mais n'est pas public ;
+- un profil rejected n'est pas public ;
+- les profils ne sont pas supprimes uniquement parce qu'ils sont masked.
+
+Les profils approuves sont affiches sur les pages publiques. Les profils masked
+restent accessibles dans le dashboard admin pour etre examines ou valides.
+
+La limite actuelle des validations LLM est :
+
+    MAX_VALIDATIONS = 12
+
+Cette limite concerne les validations de profils issus de textes. Elle ne
+signifie pas que 12 profils seront toujours trouves : certains resultats sont
+des doublons, des profils non MRE ou des textes insuffisants.
+
+
+2. AGENT DE L'OBSERVATOIRE DES TALENTS
+======================================
+
+Role
+----
+
+Cet agent ne collecte pas de nouveaux profils sur Internet. Il repond a la
+demande d'un utilisateur en recherchant dans la base SQLite les profils deja
+enregistres et approuves.
+
+Fonction de construction :
+
+    build_observatory_agent()
+
+Route qui l'utilise :
+
+    POST /api/observatory-chat
+
+La page frontend qui appelle cette route est :
+
+    templates/Observatory.html
+
+
+Etape 1 : demande utilisateur
+-----------------------------
+
+L'utilisateur saisit une demande en langage naturel, par exemple :
+
+    Je cherche un developpeur Java avec 5 ans d'experience au Canada.
+
+Le frontend envoie :
+
+    {"message": "..."}
+
+L'agent recoit la demande brute et la transmet a la recherche pour permettre
+l'utilisation des mots-cles et des embeddings semantiques.
+
+
+Etape 2 : outils de recherche interne
+-------------------------------------
+
+L'agent Observatoire possede trois outils :
+
+A. list_options()
+
+Retourne les secteurs et pays actuellement presents dans la base publique.
+Cette fonction aide l'agent a utiliser les valeurs exactes des secteurs et des
+pays.
+
+B. search_profiles()
+
+Recherche dans la base avec :
+
+- mots-cles ;
+- secteur ;
+- pays ;
+- experience minimale.
+
+Le code calcule un score de recherche appele match_score. Ce score est
+independant du score de confiance d'importation.
+
+C. select_matches(post_ids)
+
+Selectionne au maximum 5 profils parmi ceux retournes par la recherche.
+
+Le code de compatibilite LangChain effectue normalement une premiere recherche
+avec la phrase complete de l'utilisateur. S'il y a moins de 3 resultats, il
+elargit avec une recherche sans mots-cles, en laissant le score semantique
+participer davantage.
+
+
+Filtrage public
+---------------
+
+La recherche Observatoire publique ne prend que les lignes qui satisfont :
+
+    is_active = True
+    review_status = "approved"
+
+Les profils masked et rejected ne sont donc pas retournes aux utilisateurs.
+Ils restent toutefois presentes dans la base et dans l'administration.
+
+La page d'accueil et la page Observatoire appliquent la meme regle approved-only.
+Le template public comporte aussi une protection JavaScript qui ignore une
+reponse API dont le review_status n'est pas approved.
+
+
+Calcul du match_score
+---------------------
+
+Le match_score sert uniquement a classer les profils selon la demande de
+l'utilisateur.
+
+Il combine :
+
+1. score par mots-cles ;
+2. score semantique par embeddings ;
+3. bonus si le pays demande correspond au pays du profil ;
+4. bonus ou penalite liee a l'experience.
+
+Le calcul est resume ainsi :
+
+- les tags ont le poids le plus fort ;
+- le titre a un poids intermediaire ;
+- la description a un poids plus faible ;
+- le score semantique est calcule par lot ;
+- les resultats sont tries du meilleur au moins bon ;
+- les doublons par nom sont fusionnes ;
+- les meilleurs resultats sont limites a 15 pour la recherche interne/API.
+
+Important :
+
+    confidence_score = qualite de validation lors de l'import
+    match_score      = pertinence par rapport a la demande utilisateur
+
+Ces deux scores ne doivent pas etre confondus.
+
+
+Affichage et securite
+---------------------
+
+Le backend prepare les profils publics avant de les envoyer au frontend.
+Comme seuls les profils approved sont maintenant autorises, les profils masked
+ne doivent pas apparaitre dans l'Observatoire utilisateur.
+
+Le dashboard admin utilise une requete differente et charge tous les profils :
+
+    db.query(Post).order_by(Post.created_at.desc()).all()
+
+L'administrateur peut donc voir les profils approved et masked, leur statut et
+leur confidence_score lorsqu'il existe.
+
+Le changement de statut admin fonctionne ainsi :
+
+- approved + bouton Masquer -> review_status = masked ;
+- masked + bouton Valider -> review_status = approved.
+
+Le changement est enregistre dans la base. Le profil masked ne redevient public
+qu'apres validation administrative.
+
+
+3. GESTION OPENROUTER ET QUOTAS
+================================
+
+Le projet utilise un pool de quatre cles OpenRouter pour les agents et
+l'extraction :
+
+- OPENROUTER_API_KEY_1 ;
+- OPENROUTER_API_KEY_2 ;
+- OPENROUTER_API_KEY_3 ;
+- OPENROUTER_API_KEY_4.
+
+Le fichier config.py declare les quatre variables. Le fichier
+openrouter_key_pool.py :
+
+1. charge les cles non vides ;
+2. elimine les doublons de valeur ;
+3. conserve le nom de la variable pour les logs ;
+4. applique une rotation round-robin.
+
+Le fichier retryable_openrouter.py utilise le pool pendant les generations.
+Pour chaque appel, il peut effectuer jusqu'a :
+
+    MAX_RETRIES_PER_CALL = 3
+
+Les erreurs gerees par rotation sont principalement :
+
+- 401 AuthenticationError ;
+- 429 RateLimitError.
+
+Un backoff croissant est applique entre les tentatives.
+
+Les quatre cles augmentent les possibilites de retry, mais ne garantissent pas
+quatre fois plus de quota si elles appartiennent au meme compte OpenRouter.
+
+Le raisonnement de l'agent scout est limite par :
+
+    MAX_ITERATIONS = 18
+
+La validation des profils issus de textes est limitee par :
+
+    MAX_VALIDATIONS = 12
+
+ORCID ne consomme pas de validation LLM pour chaque profil, car son filtrage
+est structure et deterministe.
+
+
+4. EXEMPLE D'UN CYCLE COMPLET
+=============================
+
+1. L'administrateur clique sur Synchroniser.
+2. Le serveur appelle sync_talents_dynamic().
+3. L'agent scout construit ses outils.
+4. L'agent peut faire une exploration LLM initiale.
+5. Le code lance les 9 recherches Tavily Web.
+6. Le code lance Tavily News.
+7. Le code lit les flux RSS.
+8. Le code interroge ORCID, sauf si ORCID a deja ete appele dans ce cycle.
+9. Les URLs et noms deja connus sont dedupliques.
+10. Les articles Tavily/RSS serieux sont envoyes a l'extracteur LLM.
+11. Le score est converti en 0-100.
+12. Le profil recoit approved, masked ou rejected.
+13. La synchronisation ajoute les nouveaux profils dans la table post.
+14. Le dashboard admin affiche le resultat et les scores.
+15. La page publique ne charge que les profils approved.
+
+Exemple de resultat dans les logs :
+
+    Tavily Web [tech] : 4 resultat(s), 3 nouveau(x).
+    Tavily News : 26 resultat(s), 0 nouveau(x).
+    RSS : 25 resultat(s), 0 nouveau(x).
+    ORCID : 0 profils MRE decouverts.
+    Sync talents : 1 nouveau(x) profil(s) insere(s).
+
+
+5. INTERPRETATION DES LOGS
+==========================
+
+"resultat(s)" signifie que la source a retourne des resultats apres ses
+propres filtres.
+
+"nouveau(x)" signifie que l'URL n'etait pas deja dans le cache ou dans les
+URLs connues du cycle.
+
+"profil(s) valide(s)" signifie que l'extracteur a produit des profils
+acceptables pour l'enregistrement.
+
+"nouveau(x) profil(s) insere(s)" signifie que la synchronisation a ajoute des
+lignes nouvelles dans la table post.
+
+Un resultat de 0 insertion ne signifie pas necessairement une panne. Les causes
+possibles sont :
+
+- tous les resultats sont deja en cache ;
+- les profils sont des doublons ;
+- la residence etrangere n'est pas confirmee ;
+- le score de confiance est insuffisant ;
+- les profils existent deja dans la base ;
+- les sources ne renvoient aucun nouveau contenu.
+
+
+RESUME FINAL
+============
+
+Agent de collecte :
+
+- cherche sur Tavily Web, Tavily News, RSS et ORCID ;
+- filtre les candidats MRE ;
+- deduplique les URLs et les noms ;
+- utilise le LLM pour les textes ambigus ;
+- attribue un confidence_score ;
+- enregistre les profils avec un review_status ;
+- utilise le cache et les quatre cles OpenRouter ;
+- est limite a 12 validations LLM par cycle.
+
+Agent Observatoire :
+
+- ne collecte pas sur Internet ;
+- recherche dans la base ;
+- calcule le match_score ;
+- selectionne les meilleurs profils ;
+- ne retourne que les profils approved aux utilisateurs ;
+- laisse les profils masked dans le dashboard admin pour validation.
+
+FIN DU DOCUMENT
+
+6. RECAPITULATIF DE LA REVUE DES AGENTS ET DE MAIN.PY
+======================================================
+
+Cette section resume ce qui est utile, ce qui est repete et ce qui peut etre
+nettoye plus tard. Elle ne change pas le code.
+
+
+A. Les deux agents ne font pas le meme travail
+-----------------------------------------------
+
+L'agent de collecte, dans observatoire/talent_scout_agent.py, cherche des
+talents sur Internet, filtre les candidats MRE, demande une validation LLM et
+prepare les profils pour l'enregistrement.
+
+L'agent Observatoire, dans observatoire/observatory_agent.py, ne cherche pas
+sur Internet. Il recoit la demande d'un utilisateur, recherche dans la base et
+selectionne les meilleurs profils approuves.
+
+Cette separation est correcte et utile. Les deux agents ne sont donc pas un
+doublon et ne doivent pas etre fusionnes.
+
+
+B. Elements utiles a conserver
+------------------------------
+
+- Le cache ProfileCache evite de retraiter les memes URLs.
+- La deduplication par URL et par nom evite les doublons en base.
+- Le filtre local MRE reduit les appels LLM inutiles.
+- La validation LLM est utile pour les textes ambigus de Tavily et RSS.
+- ORCID est traite avec ses donnees structurees et ne necessite pas une
+    seconde validation LLM par profil.
+- confidence_score mesure la confiance de l'import.
+- match_score mesure la pertinence par rapport a la demande utilisateur.
+- Le filtre public approved-only protege l'Observatoire utilisateur.
+- Le dashboard admin charge tous les profils pour permettre leur controle.
+- La rotation des quatre cles OpenRouter et le retry 401/429 sont utiles.
+
+Ces elements ont des responsabilites differentes. Ils ne sont pas inutiles
+meme s'ils apparaissent dans plusieurs fichiers.
+
+
+C. Premier doublon : deux fonctions de synchronisation
+-------------------------------------------------------
+
+Deux fichiers contiennent une fonction appelee sync_talents_dynamic() :
+
+1. talent_sync.py ;
+2. observatoire/scheduler.py.
+
+Ces fonctions font presque le meme travail : lire les profils decouverts,
+calculer le statut et creer des objets Post.
+
+Risque actuel : une modification peut etre appliquee dans un fichier mais pas
+dans l'autre. Les seuils, confidence_score ou is_active peuvent alors devenir
+different selon le chemin d'execution.
+
+Le chemin admin de main.py importe actuellement sync_talents_dynamic depuis
+talent_sync.py. Le scheduler importe aussi sa propre fonction selon son
+branchement.
+
+Recommandation : conserver une seule implementation centrale et faire appeler
+cette implementation par la route admin et par le scheduler. Cette operation
+doit etre faite avec prudence, car elle concerne les imports et la synchronisation
+automatique.
+
+
+D. Deuxieme repetition : exploration LLM puis collecte complete
+---------------------------------------------------------------
+
+Dans talent_scout_agent.py, le cycle peut :
+
+1. lancer d'abord l'agent LangChain, qui choisit des outils ;
+2. lancer ensuite la collecte deterministe de tous les domaines Web, de News,
+     de RSS et d'ORCID.
+
+Cette repetition garantit que tous les domaines sont couverts, meme si l'agent
+decide de s'arreter trop tot. Elle peut toutefois provoquer des appels de
+source repetes dans un meme cycle et augmenter le temps de synchronisation.
+
+Le cache elimine les URLs deja connues, mais il n'empeche pas necessairement
+la requete vers Tavily ou la lecture du flux RSS. Il faut donc choisir la
+priorite du projet :
+
+- couverture maximale : conserver les deux etapes ;
+- economie de temps et de quotas : utiliser une seule collecte deterministe ;
+- compromis : garder l'agent pour organiser la recherche, puis executer une
+    collecte deterministe limitee aux domaines non encore couverts.
+
+Ce n'est pas un doublon des deux agents, mais une repetition a l'interieur de
+l'agent de collecte.
+
+
+E. Protections de masquage : complementaires mais partiellement redondantes
+---------------------------------------------------------------------------
+
+main.py possede deux protections :
+
+- _public_profile_data() pour les resultats JSON de recherche ;
+- _public_post() pour les objets transmis aux templates.
+
+Elles masquent le nom, la description, la source et l'image d'un profil masked.
+Cependant, les requetes publiques filtrent deja sur review_status = approved.
+La branche masked est donc normalement une protection de secours.
+
+Il ne faut pas supprimer cette protection sans verifier les futures routes API.
+La regle principale reste :
+
+        les utilisateurs voient uniquement les profils approved
+        les administrateurs voient approved, masked et rejected
+
+
+F. Limites qui se repetent mais qui sont necessaires
+----------------------------------------------------
+
+Les constantes suivantes sont utilisees dans plusieurs conditions ou messages :
+
+- MAX_ITERATIONS = 18 : limite le raisonnement de l'agent scout ;
+- MAX_VALIDATIONS = 12 : limite les validations de profils textuels ;
+- MAX_ORCID_CALLS = 1 : limite les appels ORCID par cycle de l'agent ;
+- MAX_RESULTS_PER_DOMAIN : limite les resultats d'une recherche Web ou ORCID ;
+- MAX_RESULTS_PER_NEWS_QUERY : limite les resultats de chaque requete News.
+
+Leur repetition dans les garde-fous et les messages n'est pas inutile. Il faut
+seulement eviter les anciens textes indiquant encore une limite de 8.
+
+
+G. main.py : couche web, pas un deuxieme agent de collecte
+----------------------------------------------------------
+
+Les fonctions suivantes sont necessaires a l'interface :
+
+- _search_observatory_profiles() calcule le match_score ;
+- /api/observatory-chat recoit la demande utilisateur ;
+- /observatory prepare la page publique ;
+- /admin affiche tous les profils ;
+- /admin/talents/sync lance la synchronisation.
+
+Ces fonctions ne remplacent pas l'agent scout. Elles font le lien entre la base,
+les agents et le frontend.
+
+
+H. Flux actuel a retenir
+------------------------
+
+        Agent scout
+                -> Tavily Web, Tavily News, RSS, ORCID
+                -> filtrage MRE et deduplication
+                -> validation LLM pour les textes
+                -> score de confiance et statut
+                -> synchronisation vers Post
+
+        Agent Observatoire
+                -> recherche dans Post
+                -> filtre approved-only
+                -> calcul du match_score
+                -> selection de 5 profils maximum
+                -> reponse API pour l'utilisateur
+
+        Dashboard admin
+                -> charge tous les profils
+                -> affiche le statut et le score
+                -> Masquer un profil approved
+                -> Valider un profil masked
+
+
+I. Conclusion
+-------------
+
+Les doublons reels a surveiller sont :
+
+1. les deux implementations de sync_talents_dynamic ;
+2. l'exploration LLM suivie de la collecte deterministe complete ;
+3. les deux projections publiques de masquage, qui restent utiles comme
+     defense en profondeur.
+
+Les elements a conserver sont le cache, la deduplication, la validation MRE,
+la separation des deux scores, le filtre approved-only et le dashboard admin.
+
+Le principal nettoyage recommande est de centraliser la synchronisation dans
+une seule fonction. Le principal choix fonctionnel restant est de decider si
+la double exploration de l'agent scout est necessaire pour la couverture ou
+si elle doit etre reduite pour economiser du temps et des appels de sources.
+
+FIN DE LA REVUE

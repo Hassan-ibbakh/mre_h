@@ -1,0 +1,29 @@
+[
+  {
+    "title": "Yassine El Amrani",
+    "description": "Ingénieur spécialisé en intelligence artificielle et entrepreneuriat technologique, actif au Canada.",
+    "source_url": "seed://yassine-el-amrani",
+    "sector": "tech",
+    "country": "Canada",
+    "expertise_tags": "ia, entrepreneuriat, technologie",
+    "years_experience": 8
+  },
+  {
+    "title": "Salma Benali",
+    "description": "Chercheuse en biotechnologies et innovation médicale basée en France.",
+    "source_url": "seed://salma-benali",
+    "sector": "health",
+    "country": "France",
+    "expertise_tags": "biotechnologie, santé, recherche",
+    "years_experience": 10
+  },
+  {
+    "title": "Omar Haddad",
+    "description": "Professeur et chercheur en énergie verte travaillant à l'étranger.",
+    "source_url": "seed://omar-haddad",
+    "sector": "education",
+    "country": "Allemagne",
+    "expertise_tags": "énergie, recherche, enseignement",
+    "years_experience": 12
+  }
+]

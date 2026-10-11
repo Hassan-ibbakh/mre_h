@@ -1,0 +1,33 @@
+<!-- PAGE 0 -->
+
+# Budget de l'Etat 2012, 2013 — REG
+
+*Fichier source : Budget de l'Etat 2012, 2013.xls*
+
+|   Unnamed: 0 |   Unnamed: 1 | Unnamed: 2                                 | Unnamed: 3                                            | Unnamed: 4                    | Unnamed: 5   | Unnamed: 6     | Unnamed: 7                    | Unnamed: 8   |
+|-------------:|-------------:|:-------------------------------------------|:------------------------------------------------------|:------------------------------|:-------------|:---------------|:------------------------------|:-------------|
+|          nan |          nan | nan                                        | nan                                                   | nan                           | nan          | nan            | nan                           | nan          |
+|          nan |          nan | nan                                        | nan                                                   | nan                           | nan          | nan            | nan                           | nan          |
+|          nan |          nan | nan                                        | REPARTITION DES DEPENSES DU BUDGET GENERAL PAR REGION | nan                           | nan          | nan            | nan                           | nan          |
+|          nan |          nan | nan                                        | ANNEE 2012 ET 2013                                    | nan                           | nan          | nan            | nan                           | nan          |
+|          nan |          nan | nan                                        | nan                                                   | nan                           | nan          | nan            | nan                           | nan          |
+|          nan |          nan | REGION                                     | 2012                                                  | nan                           | nan          | 2013           | nan                           | nan          |
+|          nan |          nan | nan                                        | Investissement                                        | Matériel et Dépenses Diverses | Total        | Investissement | Matériel et Dépenses Diverses | Total        |
+|          nan |          nan | Services communs                           | 28507785706                                           | 21991921828                   | 50499707534  | 27720192065    | 23077672595                   | 50797864660  |
+|          nan |          nan | REGION DE OUED ED-DAHAB-LAGOUIRA           | 128103699                                             | 28540660                      | 156644359    | 94183599       | 33504370                      | 127687969    |
+|          nan |          nan | REGION DE LAAYOUNE-BOUJDOUR-SAKIA AL HAMRA | 112482854                                             | 60458534                      | 172941388    | 137873119      | 62929625                      | 200802744    |
+|          nan |          nan | REGION DE GUELMIM-ES-SEMARA                | 258293084                                             | 128869331                     | 387162415    | 287545434      | 122163996                     | 409709430    |
+|          nan |          nan | REGION DE SOUS-MASSA-DRAA                  | 1170371785                                            | 606035489                     | 1776407274   | 1185335856     | 555910952                     | 1741246808   |
+|          nan |          nan | REGION DE GHARB-CHRARDA-BNI HSSEN          | 726132313                                             | 250831289                     | 976963602    | 687867679      | 240665600                     | 928533279    |
+|          nan |          nan | REGION DE CHAOUIA-OUARDIGHA                | 308506981                                             | 291175439                     | 599682420    | 325677311      | 272073590                     | 597750901    |
+|          nan |          nan | REGION DE MARRAKECH-TENSIFT-AL-HAOUZ       | 1483223962                                            | 816487492                     | 2299711454   | 1313507847     | 875283271                     | 2188791118   |
+|          nan |          nan | REGION DE L'ORIENTAL                       | 1114464974                                            | 395261357                     | 1509726331   | 938873970      | 382245740                     | 1321119710   |
+|          nan |          nan | REGION DU GRAND CASABLANCA                 | 563124500                                             | 877602347                     | 1440726847   | 612590336      | 921416840                     | 1534007176   |
+|          nan |          nan | REGION DE RABAT-SALE-ZEMMOUR-ZAER          | 876542391                                             | 1225234342                    | 2101776733   | 955546339      | 1312319523                    | 2267865862   |
+|          nan |          nan | REGION DE DOUKALA-ABDA                     | 649036734                                             | 294230586                     | 943267320    | 642300457      | 274697240                     | 916997697    |
+|          nan |          nan | REGION DE TADLA-AZILAL                     | 536839851                                             | 247889764                     | 784729615    | 591812589      | 230324878                     | 822137467    |
+|          nan |          nan | REGION DE MEKNES-TAFILALET                 | 1124144548                                            | 459234533                     | 1583379081   | 786704684      | 449739663                     | 1236444347   |
+|          nan |          nan | REGION DE FES-BOULEMANE                    | 589146696                                             | 670668959                     | 1259815655   | 765351004      | 691072061                     | 1456423065   |
+|          nan |          nan | REGION DE TAZA-AL HOCEIMA-TAOUNATE         | 708940505                                             | 284414231                     | 993354736    | 768891773      | 265751467                     | 1034643240   |
+|          nan |          nan | REGION DE TANGER-TETOUAN                   | 1747221417                                            | 419793819                     | 2167015236   | 2423111938     | 416277589                     | 2839389527   |
+|          nan |          nan | TOTAL Régions                              | 40604362000                                           | 29048650000                   | 69653012000  | 40237366000    | 30184049000                   | 70421415000  |

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion — MRE AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
+  --gold:#C9972E; --gold-tint:#FBF1DC;
+  --green:#3F8F3F; --green-tint:#E6F1E3;
+  --gray:#DCD9CE; --surface:#F7F6F2;
+  --text:#16233A; --text-soft:#5F6B82; --white:#FFFFFF;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Inter',sans-serif;background:var(--surface);color:var(--text);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden;
+}
+.corner{position:absolute;width:120px;height:120px;opacity:.5;}
+.corner.tl{top:-10px;left:-10px;}
+.corner.br{bottom:-10px;right:0;transform:rotate(180deg);}
+.public-nav{position:fixed;top:18px;right:28px;z-index:3;display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end;}
+.public-nav a{color:var(--navy);font-size:12px;font-weight:600;text-decoration:none;}.public-nav a:hover{color:var(--gold);}.public-nav .nav-cta{background:var(--navy);color:var(--white);padding:8px 14px;border-radius:20px;}.public-nav .nav-cta:hover{color:var(--white);background:var(--navy-2);}
+@media(max-width:760px){.public-nav{position:static;justify-content:flex-start;flex-wrap:nowrap;width:100%;max-width:100%;margin-bottom:22px;gap:10px;overflow-x:auto;padding:0 4px 8px;scrollbar-width:thin}.public-nav a{flex:0 0 auto;white-space:nowrap}body{display:block;padding-top:20px}.card{margin:auto;}}
+.card{
+  background:var(--white);width:100%;max-width:400px;padding:40px 36px;
+  border-radius:18px;border:1px solid var(--gray);box-shadow:0 24px 60px rgba(11,30,51,.1);
+  position:relative;z-index:2;
+}
+.logo{display:flex;align-items:center;gap:11px;margin-bottom:30px;}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Fraunces',serif;font-weight:600;font-size:14px;}
+.logo-title{font-size:16px;font-weight:700;color:var(--navy);}
+.logo-sub{font-size:10.5px;color:var(--text-soft);}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:24px;margin-bottom:6px;color:var(--navy);}
+p.sub{color:var(--text-soft);font-size:14px;margin-bottom:26px;}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px;}
+input[type=email],input[type=password]{
+  width:100%;padding:11px 14px;border:1px solid var(--gray);border-radius:10px;
+  font-size:14.5px;margin-bottom:18px;font-family:'Inter',sans-serif;outline:none;
+}
+input:focus{border-color:var(--navy);}
+.row-between{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin:-6px 0 22px;color:var(--text-soft);}
+.row-between label{display:flex;align-items:center;gap:6px;font-weight:500;color:var(--text-soft);margin:0;}
+.row-between a{color:var(--navy-2);font-weight:600;text-decoration:none;}
+button{
+  width:100%;padding:12px;border:none;border-radius:10px;background:var(--navy);
+  color:var(--white);font-weight:600;font-size:15px;cursor:pointer;transition:.2s;
+}
+button:hover{background:var(--navy-2);}
+.foot-note{text-align:center;margin-top:20px;font-size:13px;color:var(--text-soft);}
+.foot-note a{color:var(--gold);font-weight:600;}
+.back{display:block;text-align:center;margin-top:14px;font-size:12.5px;color:var(--text-soft);text-decoration:none;}
+.back:hover{color:var(--navy);}
+.flash{padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13.5px;font-weight:500;}
+.flash.success{background:var(--green-tint);color:#2C6B2C;}
+.flash.error{background:#FBEAEA;color:#A23B3B;}
+</style>
+</head>
+<body>
+
+<nav class="public-nav" aria-label="Navigation principale"><a href="{{ url_for('home') }}">Accueil</a><a href="{{ url_for('opportunities') }}">Opportunités</a><a href="{{ url_for('chat_page') }}">Assistant IA</a><a href="{{ url_for('observatory') }}">Observatoire</a><a href="{{ url_for('home') }}#about">À propos</a><a class="nav-cta" href="{{ url_for('login') }}">Se connecter</a></nav>
+
+<svg class="corner tl" viewBox="0 0 120 120"><g fill="none" stroke="#C9972E" stroke-width="1.5"><polygon points="20,45 30,20 40,45 65,35 55,60 65,85 40,75 30,100 20,75 -5,85 5,60 -5,35"/></g></svg>
+<svg class="corner br" viewBox="0 0 120 120"><g fill="none" stroke="#3F8F3F" stroke-width="1.5"><polygon points="20,45 30,20 40,45 65,35 55,60 65,85 40,75 30,100 20,75 -5,85 5,60 -5,35"/></g></svg>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div><div class="logo-title">MRE AI</div><div class="logo-sub">Intelligence au service du pays</div></div>
+  </div>
+  <h1>Bienvenue</h1>
+  <p class="sub">Connectez-vous à votre espace administrateur.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+  {% endwith %}
+
+  <form method="POST">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" placeholder="votre@email.com" required autofocus>
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" name="password" required>
+    <div class="row-between">
+      <label><input type="checkbox" style="width:auto;margin:0;"> Se souvenir de moi</label>
+      <a href="#">Mot de passe oublié ?</a>
+    </div>
+    <button type="submit">Se connecter</button>
+  </form>
+  <p class="foot-note">Accès réservé à l'équipe MRE AI.</p>
+  <a href="{{ url_for('home') }}" class="back">← Retour au site</a>
+</div>
+</body>
+</html>

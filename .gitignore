@@ -1,0 +1,31 @@
+# ===== Secrets - NE JAMAIS COMMITTER =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+secrets/
+keys/
+
+# ===== Données utilisateurs locales =====
+instance/
+
+# ===== Environnement Python =====
+venv/
+.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# ===== Données locales générées =====
+# (chroma_db et data/ sont COMMITTÉS pour la démo : pré-construits)
+# chroma_db/
+# data/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
