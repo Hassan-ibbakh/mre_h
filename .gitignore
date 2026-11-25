@@ -23,8 +23,9 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# Index ChromaDB temporaire (reconstruction avant remplacement de chroma_db/)
+# Index ChromaDB temporaire (reconstruction) et sauvegarde après remplacement
 chroma_db_new/
+chroma_db_old/
 
 # ===== Données locales générées =====
 # (chroma_db et data/ sont COMMITTÉS pour la démo : pré-construits)
