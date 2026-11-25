@@ -117,6 +117,22 @@ _ENDPOINT_URLS = {
 }
 
 
+_STATIC_DIR = Path("static")
+
+
+def _static_url(filename: str) -> str:
+    """URL d'un fichier statique avec un paramètre de version (cache busting).
+
+    `?v=<date de modification>` change dès que le fichier est remplacé : le
+    navigateur retélécharge alors l'image/CSS au lieu de réutiliser une
+    ancienne copie en cache (ex. un pointeur Git LFS servi avant `git lfs pull`)."""
+    try:
+        version = int((_STATIC_DIR / filename).stat().st_mtime)
+    except OSError:
+        return f"/static/{filename}"
+    return f"/static/{filename}?v={version}"
+
+
 def url_for(endpoint: str, **values: str) -> str:
     """Équivalent de `flask.url_for` pour les templates Jinja historiques.
 
@@ -124,7 +140,7 @@ def url_for(endpoint: str, **values: str) -> str:
     (ex. /admin/users/2/status) ainsi que les arguments de requête.
     """
     if endpoint == "static":
-        return f"/static/{values.get('filename', '')}"
+        return _static_url(values.get("filename", ""))
 
     base = _ENDPOINT_URLS.get(endpoint, "#")
     if not values:
