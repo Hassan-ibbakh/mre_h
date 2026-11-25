@@ -54,7 +54,7 @@ import numpy as np
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
@@ -1199,6 +1199,12 @@ async def delete_post(
         db.commit()
         flash(request, "Profil supprimé.", "success")
     return RedirectResponse(url="/admin", status_code=303)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    """Les navigateurs demandent /favicon.ico par défaut : on sert le PNG du logo."""
+    return FileResponse("static/images/favicon.png", media_type="image/png")
 
 
 @app.get("/health")
