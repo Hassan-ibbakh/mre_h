@@ -1,3 +1,4 @@
+{% from 'partials/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -5,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MRE AI — Investir au Maroc, guidé par l'IA</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site-header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -28,20 +30,6 @@ a{color:inherit;text-decoration:none;}
 img{display:block;max-width:100%;}
 
 /* ===== HEADER ===== */
-header{position:sticky;top:0;z-index:50;padding:16px 0;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(11,30,51,.06);}
-.header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
-.logo{display:flex;align-items:center;gap:12px;}
-.logo-icon{width:44px;height:44px;background:var(--navy);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:800;font-size:16px;font-family:'Fraunces',serif;}
-.logo-text-wrap{line-height:1.2;}
-.logo-title{font-size:17px;font-weight:800;color:var(--navy);font-family:'Inter',sans-serif;letter-spacing:.02em;}
-.logo-sub{font-size:9.5px;color:var(--text-soft);letter-spacing:.08em;text-transform:uppercase;}
-nav ul{display:flex;list-style:none;gap:28px;align-items:center;flex-wrap:wrap;}
-nav ul li a{text-decoration:none;font-weight:500;font-size:13.5px;color:var(--text);transition:color .2s;position:relative;}
-nav ul li a:not(.btn-admin):hover{color:var(--navy-2);}
-nav ul li a:not(.btn-admin)::after{content:'';position:absolute;bottom:-3px;left:0;width:0;height:2px;background:var(--gold);transition:width .3s;}
-nav ul li a:not(.btn-admin):hover::after{width:100%;}
-.btn-admin{background:var(--navy);color:var(--white) !important;padding:10px 24px;border-radius:50px;font-size:13px !important;font-weight:600 !important;transition:.25s;box-shadow:var(--shadow-sm);}
-.btn-admin:hover{background:var(--navy-2);transform:translateY(-2px);box-shadow:var(--shadow-md);}
 
 /* ===== HERO ===== */
 .hero{position:relative;min-height:calc(100vh - 77px);padding:96px 0 72px;overflow:hidden;display:flex;align-items:center;background-color:var(--navy);background-image:linear-gradient(90deg,rgba(7,23,42,.93) 0%,rgba(7,23,42,.82) 39%,rgba(7,23,42,.35) 72%,rgba(7,23,42,.28) 100%),url("{{ url_for('static', filename='images/accueil.jpg') }}");background-size:cover,cover;background-position:center,62% center;background-repeat:no-repeat;background-attachment:fixed;}
@@ -105,21 +93,23 @@ section{padding:60px 0;}
 /* ===== OPPORTUNITIES ===== */
 .opp-section{background:var(--surface);}
 .opp-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;}
-.opp-item{background:var(--white);border-radius:var(--radius);border:1px solid var(--gray);overflow:hidden;transition:.3s;}
-.opp-item:hover{box-shadow:var(--shadow-md);transform:translateY(-4px);}
-.opp-visual{height:120px;position:relative;display:flex;align-items:flex-end;padding:14px;}
-.opp-visual.re{background:linear-gradient(135deg,#1E3A5F,#0B1E33);}
-.opp-visual.ag{background:linear-gradient(135deg,#4A9F4A,#2C6B2C);}
-.opp-visual.ind{background:linear-gradient(135deg,#3B4A63,#16233A);}
-.opp-visual.tou{background:linear-gradient(135deg,#D4A93A,#A87A1E);}
-.opp-tag{background:rgba(255,255,255,.95);color:var(--navy);padding:4px 14px;border-radius:50px;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
-.opp-body{padding:18px 20px 22px;}
-.opp-body h4{font-size:16px;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:3px;}
-.opp-body .loc{color:var(--text-soft);font-size:12.5px;margin-bottom:14px;}
-.opp-figures{display:flex;justify-content:space-between;font-size:12px;}
-.opp-figures .fig-label{color:var(--text-soft);display:block;margin-bottom:2px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;}
-.opp-figures .rendement{color:var(--green);font-weight:700;font-size:15px;}
-.opp-figures .montant{color:var(--text);font-weight:700;font-size:15px;}
+.opp-item{--accent:var(--navy);--accent-tint:var(--navy-tint);display:flex;flex-direction:column;background:var(--white);border-radius:var(--radius);border:1px solid var(--gray);border-top:4px solid var(--accent);overflow:hidden;transition:box-shadow .25s,transform .25s;color:inherit;text-decoration:none;}
+.opp-item:hover{box-shadow:var(--shadow-md);transform:translateY(-3px);}
+.opp-item.opp-re{--accent:#1E3A5F;--accent-tint:#E7ECF3;}
+.opp-item.opp-ag{--accent:#3F8F3F;--accent-tint:#E6F1E3;}
+.opp-item.opp-ind{--accent:#3B4A63;--accent-tint:#E8EBF0;}
+.opp-item.opp-tou{--accent:#C9972E;--accent-tint:#FBF1DC;}
+.opp-item.opp-fin{--accent:#16304F;--accent-tint:#E7ECF3;}
+.opp-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.opp-tag{background:var(--accent-tint);color:var(--accent);padding:4px 11px;border-radius:50px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;}
+.opp-body{flex:1;display:flex;flex-direction:column;padding:20px 22px 20px;}
+.opp-body h4{font-size:16.5px;line-height:1.35;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:8px;color:var(--text);}
+.opp-body .loc{color:var(--text-soft);font-size:12px;display:flex;align-items:center;gap:4px;text-align:right;}
+.opp-body .loc svg{width:13px;height:13px;flex-shrink:0;}
+.opp-excerpt{color:var(--text-soft);font-size:13.5px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.opp-source{margin-top:auto;padding-top:14px;border-top:1px solid var(--gray);font-size:11.5px;color:var(--text-soft);}
+.opp-source b{color:var(--text);font-weight:600;}
+.opp-excerpt + .opp-source{margin-top:16px;}
 
 /* ===== OBSERVATORY ===== */
 .obs-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
@@ -211,32 +201,12 @@ footer p.copyright{opacity:.4;font-size:12px;}
   .trust-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.10);}
 }
 @media (max-width:460px){.trust-grid{grid-template-columns:1fr;}.trust-item{border-right:0;border-bottom:1px solid rgba(255,255,255,.10);}.trust-item:last-child{border-bottom:0;}}
+.icon-badge{color:var(--navy);}.icon-badge.b-green{color:var(--green);}.icon-badge.b-gold{color:#A87A1E;}
 </style>
 </head>
 <body>
 
-<!-- ===== HEADER ===== -->
-<header>
-  <div class="container header-inner">
-    <div class="logo">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:38px;width:auto;">
-      <div class="logo-text-wrap">
-        <div class="logo-title">MRE AI</div>
-        <div class="logo-sub">Intelligence au service du pays</div>
-      </div>
-    </img>
-    <nav>
-      <ul>
-        <li><a href="{{ url_for('home') }}">Accueil</a></li>
-        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
-        <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
-        <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
-        <li><a href="#about">À propos</a></li>
-        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
-      </ul>
-    </nav>
-  </div>
-</header>
+{% set active = 'home' %}{% include 'partials/site_header.html' %}
 
 <!-- ===== FLASH ===== -->
 <div class="flash-messages">
@@ -261,7 +231,7 @@ footer p.copyright{opacity:.4;font-size:12px;}
       <div class="stat-strip">
         <div class="stat"><b>~7M</b><span>Marocains résidant à l'étranger</span></div>
         <div class="stat"><b>40 Mds MAD</b><span>Transferts sur 4 mois (2026)</span></div>
-        <div class="stat"><b>4</b><span>Secteurs couverts</span></div>
+        <div class="stat"><b>6</b><span>Secteurs couverts par l'assistant</span></div>
       </div>
     </div>
   </div>
@@ -299,25 +269,25 @@ footer p.copyright{opacity:.4;font-size:12px;}
     <div class="section-head"><h2>Secteurs d'investissement</h2></div>
     <div class="sectors-grid">
       <div class="sector-card" data-sector="real_estate">
-        <div class="icon-badge b-navy">🏠</div>
+        <div class="icon-badge b-navy">{{ icon('home', 22) }}</div>
         <h3>Immobilier</h3>
         <p>Résidentiel et commercial, fiscalité, rendements par ville.</p>
         <span class="card-arrow">→</span>
       </div>
       <div class="sector-card" data-sector="agriculture">
-        <div class="icon-badge b-green">🌱</div>
+        <div class="icon-badge b-green">{{ icon('leaf', 22) }}</div>
         <h3>Agriculture</h3>
         <p>Plan Maroc Vert, filières et zones prometteuses.</p>
         <span class="card-arrow">→</span>
       </div>
       <div class="sector-card" data-sector="industry">
-        <div class="icon-badge b-navy">🏭</div>
+        <div class="icon-badge b-navy">{{ icon('factory', 22) }}</div>
         <h3>Industrie</h3>
         <p>Zones franches, avantages fiscaux, projets d'avenir.</p>
         <span class="card-arrow">→</span>
       </div>
       <div class="sector-card" data-sector="tourism">
-        <div class="icon-badge b-gold">🌴</div>
+        <div class="icon-badge b-gold">{{ icon('sun', 22) }}</div>
         <h3>Tourisme</h3>
         <p>Hôtellerie, tourisme durable, Vision 2030.</p>
         <span class="card-arrow">→</span>
@@ -335,19 +305,19 @@ footer p.copyright{opacity:.4;font-size:12px;}
     </div>
     <div class="opp-list">
       {% for opportunity in opportunities %}
-      <article class="opp-item">
-        <div class="opp-visual {{ 're' if opportunity.sector == 'immobilier' else 'ag' if opportunity.sector == 'agriculture' else 'ind' if opportunity.sector == 'industrie' else 'tou' }}">
-          <span class="opp-tag">{{ opportunity.sector|replace('_', ' ')|title }}</span>
-        </div>
+      <a class="opp-item opp-{{ opportunity.sector | sector_theme }}" href="{{ url_for('opportunities') }}">
         <div class="opp-body">
+          <div class="opp-meta">
+            <span class="opp-tag">{{ opportunity.sector|replace('_', ' ') }}</span>
+            <span class="loc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.3"/></svg>{{ opportunity.region or 'Maroc' }}</span>
+          </div>
           <h4>{{ opportunity.title }}</h4>
-          <p class="loc">{{ opportunity.region or 'Région non précisée dans la source' }}</p>
-          <p>{{ opportunity.excerpt }}</p>
-          <small>Source RAG : {{ opportunity.source }}</small>
+          <p class="opp-excerpt">{{ opportunity.excerpt }}</p>
+          <div class="opp-source">Source : <b>{{ opportunity.source_label or opportunity.source }}</b></div>
         </div>
-      </article>
+      </a>
       {% else %}
-      <p class="obs-empty">Aucune opportunité exploitable n'est disponible dans les documents RAG indexés.</p>
+      <p class="obs-empty">Aucune opportunité validée n'est disponible pour le moment. Revenez bientôt : de nouveaux dossiers sont ajoutés régulièrement.</p>
       {% endfor %}
     </div>
   </div>
@@ -492,7 +462,7 @@ footer p.copyright{opacity:.4;font-size:12px;}
     </div>
     <div class="footer-bottom">
       <p class="copyright">© 2026 MRE AI. Tous droits réservés.</p>
-      <p class="footer-poc">Preuve de concept — secteur immobilier</p>
+      <p class="footer-poc">Informations fournies à titre indicatif — ne remplacent pas un conseil juridique ou financier.</p>
     </div>
   </div>
 </footer>

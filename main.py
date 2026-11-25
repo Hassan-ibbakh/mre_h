@@ -193,6 +193,38 @@ def _safe_url(value: str | None) -> str:
 
 templates.env.filters["safe_url"] = _safe_url
 
+# Libellé de secteur (quelle que soit sa forme : « Immobilier », « immobilier »,
+# « Énergie »…) -> thème de couleur des cartes.
+_SECTOR_THEMES = {
+    "immobilier": "re", "real_estate": "re",
+    "agriculture": "ag", "agroalimentaire": "ag",
+    "industrie": "ind", "industry": "ind", "mines": "ind", "energie": "ind", "énergie": "ind",
+    "tourisme": "tou", "tourism": "tou",
+    "finance": "fin", "investissement": "fin", "commerce": "fin", "services": "fin",
+}
+
+
+def _sector_theme(value: str | None) -> str:
+    return _SECTOR_THEMES.get((value or "").strip().casefold(), "def")
+
+
+templates.env.filters["sector_theme"] = _sector_theme
+
+
+def _source_display(value: str | None) -> str:
+    """Nom de source lisible pour les profils de l'Observatoire.
+
+    Masque les détails techniques (fournisseur d'API, jeu de données interne)."""
+    raw = (value or "").strip()
+    if not raw or raw.casefold() == "seed":
+        return "Sélection MRE AI"
+    if "tavily" in raw.casefold():
+        return "Article de presse" if "news" in raw.casefold() or "presse" in raw.casefold() else "Recherche web"
+    return raw
+
+
+templates.env.filters["source_display"] = _source_display
+
 # ----- Secteurs RAG immobilier (page d'accueil / chat) -----
 SECTOR_LABELS = {
     "real_estate": "Immobilier",
@@ -622,7 +654,7 @@ def _public_profile_data(post: Post, match_score: int | None = None) -> dict:
         "tags": post.tags_list(),
         "match_score": match_score,
         "description": "Les informations détaillées de ce profil sont masquées." if is_masked else (post.description or ""),
-        "source_name": "" if is_masked else (post.source_name or ""),
+        "source_name": "" if is_masked else _source_display(post.source_name),
         "source_url": "" if is_masked else (post.source_url or ""),
         "image_url": "" if is_masked else (post.image_url or ""),
         "review_status": post.review_status,

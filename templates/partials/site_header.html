@@ -1,0 +1,63 @@
+{#- En-tête commun des pages publiques.
+    Variables : `active` (home | opportunities | chat | observatory | login | register), `user`. -#}
+{%- set nav_items = [
+  ('home', 'Accueil', url_for('home')),
+  ('opportunities', 'Opportunités', url_for('opportunities')),
+  ('chat', 'Assistant IA', url_for('chat_page')),
+  ('observatory', 'Observatoire', url_for('observatory')),
+  ('about', 'À propos', url_for('home') ~ '#about'),
+] -%}
+<header class="site-header">
+  <div class="sh-inner">
+    <a class="sh-brand" href="{{ url_for('home') }}" aria-label="MRE AI — accueil">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" width="34" height="39">
+      <span class="sh-brand-text">
+        <span class="sh-brand-title">MRE AI</span>
+        <span class="sh-brand-sub">Intelligence au service du pays</span>
+      </span>
+    </a>
+
+    <button class="sh-toggle" type="button" aria-expanded="false" aria-controls="sh-menu" aria-label="Ouvrir le menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="sh-menu" id="sh-menu" aria-label="Navigation principale">
+      <ul class="sh-links">
+        {%- for key, label, href in nav_items %}
+        <li><a href="{{ href }}"{% if active == key %} class="is-active" aria-current="page"{% endif %}>{{ label }}</a></li>
+        {%- endfor %}
+      </ul>
+      <div class="sh-actions">
+        {%- if user %}
+          {%- if user.role == 'admin' %}
+          <a class="sh-btn sh-btn--ghost" href="{{ url_for('admin_dashboard') }}">Administration</a>
+          {%- endif %}
+          <a class="sh-btn sh-btn--primary" href="{{ url_for('logout') }}">Déconnexion</a>
+        {%- else %}
+          {%- if active != 'register' %}
+          <a class="sh-btn sh-btn--ghost" href="{{ url_for('register') }}">Demander l'accès</a>
+          {%- endif %}
+          {%- if active != 'login' %}
+          <a class="sh-btn sh-btn--primary" href="{{ url_for('login') }}">Se connecter</a>
+          {%- endif %}
+        {%- endif %}
+      </div>
+    </nav>
+  </div>
+</header>
+<script>
+(function () {
+  var header = document.currentScript.previousElementSibling;
+  var toggle = header.querySelector('.sh-toggle');
+  function setOpen(open) {
+    header.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+  }
+  toggle.addEventListener('click', function () { setOpen(!header.classList.contains('is-open')); });
+  header.querySelectorAll('.sh-menu a').forEach(function (a) {
+    a.addEventListener('click', function () { setOpen(false); });
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+})();
+</script>

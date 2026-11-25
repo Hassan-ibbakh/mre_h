@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Observatoire des Compétences — MRE AI</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site-header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -22,17 +23,6 @@ body{font-family:'Inter',sans-serif;background:var(--white);color:var(--text);li
 h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;letter-spacing:-0.01em;}
 .container{max-width:1200px;margin:auto;padding:0 24px;}
 a{color:inherit;}
-header{padding:18px 0;border-bottom:1px solid var(--gray);background:var(--white);}
-.header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
-.logo{display:flex;align-items:center;gap:11px;}
-.logo-mark{width:38px;height:38px;border-radius:11px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.logo-mark svg{width:20px;height:20px;}
-.logo-title{font-size:18px;font-weight:700;color:var(--navy);font-family:'Inter',sans-serif;}
-.logo-sub{font-size:10.5px;color:var(--text-soft);}
-nav ul{display:flex;list-style:none;gap:26px;align-items:center;flex-wrap:wrap;}
-nav ul li a{text-decoration:none;font-weight:500;font-size:14px;color:var(--text);}
-nav ul li a.active{color:var(--navy);font-weight:700;}
-.btn-admin{background:var(--navy);color:var(--white) !important;padding:9px 20px;border-radius:22px;font-size:13.5px !important;}
 .obs-hero{padding:50px 0 34px;background:radial-gradient(circle at 8% 15%, var(--gold-tint) 0%, transparent 40%),radial-gradient(circle at 95% 90%, var(--green-tint) 0%, transparent 40%);}
 .obs-hero h1{font-size:34px;color:var(--navy);margin-bottom:10px;}
 .obs-hero p{color:var(--text-soft);font-size:15.5px;max-width:620px;margin-bottom:26px;}
@@ -164,24 +154,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
 </style>
 </head>
 <body>
-<header>
-  <div class="container header-inner">
-    <div class="logo">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:38px;width:auto;">
-      <div><div class="logo-title">MRE AI</div><div class="logo-sub">Intelligence au service du pays</div></div>
-    </div>
-    <nav>
-      <ul>
-        <li><a href="{{ url_for('home') }}">Accueil</a></li>
-        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
-        <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
-        <li><a href="{{ url_for('observatory') }}" class="active">Observatoire</a></li>
-        <li><a href="{{ url_for('home') }}#about">À propos</a></li>
-        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
-      </ul>
-    </nav>
-  </div>
-</header>
+{% set active = 'observatory' %}{% include 'partials/site_header.html' %}
 
 <section class="obs-hero">
   <div class="container">
@@ -232,7 +205,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
            data-years="{{ post.years_experience or '' }}"
            data-description="{{ post.description or '' }}"
            data-image="{{ post.image_url or '' }}"
-           data-source-name="{{ post.source_name or '' }}"
+           data-source-name="{{ post.source_name | source_display if post.source_name else '' }}"
            data-source-url="{{ post.source_url or '' }}"
            data-review-status="{{ post.review_status }}">
         <div class="talent-card__head">
@@ -256,7 +229,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
         <div class="talent-card__foot">
           <span class="talent-card__source">
             {% if post.source_name or post.source_url %}
-              {% if post.source_url | safe_url %}<a href="{{ post.source_url | safe_url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">{{ post.source_name or 'Source' }}</a>{% else %}{{ post.source_name }}{% endif %}
+              {% if post.source_url | safe_url %}<a href="{{ post.source_url | safe_url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">{{ post.source_name | source_display }}</a>{% else %}{{ post.source_name | source_display }}{% endif %}
             {% endif %}
           </span>
           <span class="talent-card__cta">Voir le profil →</span>
@@ -272,7 +245,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
 <footer>
   <div class="container footer-inner">
     <div>
-      <div class="logo-title" style="color:#fff;">MRE AI</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;letter-spacing:.01em;">MRE AI</div>
       <p class="copyright" style="margin-top:6px;">© 2026 MRE AI. Tous droits réservés.</p>
     </div>
   </div>

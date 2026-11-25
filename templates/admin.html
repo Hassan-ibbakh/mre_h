@@ -1,3 +1,4 @@
+{% from 'partials/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -240,10 +241,17 @@ td{line-height:1.45;}
   .panel-head{flex-wrap:wrap;align-items:flex-start;}
   .panel-hint{white-space:normal;}
   .bar-chart{width:100%;min-width:0;overflow-x:auto;}
-  .bar-col{flex:0 0 40px;min-width:40px;}
+  .bar-chart{gap:8px;padding-bottom:6px;}
+  .bar-col{flex:0 0 68px;min-width:68px;}
+  .bar-label{font-size:10.5px;}
   .table-wrap{min-width:0;max-width:100%;}
 }
 @media (max-width:380px){.stats-row{grid-template-columns:1fr 1fr;}.stat-label{font-size:11px;}}
+.nav-item .ic{display:inline-flex;align-items:center;justify-content:center;width:18px;}
+.stat-icon .icon{width:18px;height:18px;}
+.stat-icon.navy{color:var(--navy);}.stat-icon.green{color:var(--green);}.stat-icon.gold{color:var(--gold-deep,#A87A1E);}
+.empty-state .ic{display:flex;justify-content:center;color:var(--text-soft);}
+.action-btn,.bar-clear{display:inline-flex;align-items:center;gap:6px;}
 </style>
 </head>
 <body>
@@ -254,15 +262,15 @@ td{line-height:1.45;}
       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:30px;width:auto;">
       <div><div class="sidebar-logo-title">MRE AI</div><div class="sidebar-logo-sub">Intelligence au service du pays</div></div>
     </div>
-    <a href="{{ url_for('admin_dashboard') }}" class="nav-item active"><span class="ic">▦</span> Dashboard</a>
-    <a href="{{ url_for('admin_access_requests') }}" class="nav-item"><span class="ic">✉</span> Demandes d'accès{% if stats.pending_users %}<span class="nav-count">{{ stats.pending_users }}</span>{% endif %}</a>
-    <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">⌂</span> Accueil</a>
-    <a href="{{ url_for('opportunities') }}" class="nav-item"><span class="ic">◈</span> Opportunités</a>
-    <a href="{{ url_for('chat_page') }}" class="nav-item"><span class="ic">✦</span> Assistant IA</a>
-    <a href="{{ url_for('observatory') }}" class="nav-item"><span class="ic">👥</span> Observatoire</a>
-    <a href="{{ url_for('home') }}#about" class="nav-item"><span class="ic">i</span> À propos</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="nav-item active"><span class="ic">{{ icon('grid', 17) }}</span> Tableau de bord</a>
+    <a href="{{ url_for('admin_access_requests') }}" class="nav-item"><span class="ic">{{ icon('mail', 17) }}</span> Demandes d'accès{% if stats.pending_users %}<span class="nav-count">{{ stats.pending_users }}</span>{% endif %}</a>
+    <a href="{{ url_for('home') }}" class="nav-item"><span class="ic">{{ icon('home', 17) }}</span> Accueil</a>
+    <a href="{{ url_for('opportunities') }}" class="nav-item"><span class="ic">{{ icon('trend', 17) }}</span> Opportunités</a>
+    <a href="{{ url_for('chat_page') }}" class="nav-item"><span class="ic">{{ icon('sparkles', 17) }}</span> Assistant IA</a>
+    <a href="{{ url_for('observatory') }}" class="nav-item"><span class="ic">{{ icon('users', 17) }}</span> Observatoire</a>
+    <a href="{{ url_for('home') }}#about" class="nav-item"><span class="ic">{{ icon('info', 17) }}</span> À propos</a>
     <div class="sidebar-bottom">
-      <a href="{{ url_for('logout') }}" class="nav-item"><span class="ic">⏻</span> Déconnexion</a>
+      <a href="{{ url_for('logout') }}" class="nav-item"><span class="ic">{{ icon('logout', 17) }}</span> Déconnexion</a>
     </div>
   </aside>
 
@@ -296,27 +304,27 @@ td{line-height:1.45;}
 
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-icon navy">👥</div>
+          <div class="stat-icon navy">{{ icon('users') }}</div>
           <div class="stat-value">{{ stats.total_users }}</div>
           <div class="stat-label">Comptes utilisateurs</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon green">📋</div>
+          <div class="stat-icon green">{{ icon('id-card') }}</div>
           <div class="stat-value">{{ stats.total_posts }}</div>
           <div class="stat-label">Profils talents enregistrés</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon gold">✓</div>
+          <div class="stat-icon gold">{{ icon('check-circle') }}</div>
           <div class="stat-value">{{ stats.active_posts }}</div>
           <div class="stat-label">Profils visibles publiquement</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon gold">🤖</div>
+          <div class="stat-icon gold">{{ icon('radar') }}</div>
           <div class="stat-value">{{ stats.auto_discovered_posts }}</div>
           <div class="stat-label">Découverts automatiquement</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon navy">🌍</div>
+          <div class="stat-icon navy">{{ icon('globe') }}</div>
           <div class="stat-value">{{ stats.countries }}</div>
           <div class="stat-label">Pays représentés</div>
         </div>
@@ -339,7 +347,7 @@ td{line-height:1.45;}
             </button>
             {% endfor %}
           </div>
-          <button type="button" class="bar-clear" id="domainClear">✕ Retirer le filtre domaine</button>
+          <button type="button" class="bar-clear" id="domainClear">{{ icon('x', 13) }} Retirer le filtre domaine</button>
         </div>
         <div class="panel">
           <h2 style="margin-bottom:16px;">Actions rapides</h2>
@@ -369,14 +377,14 @@ td{line-height:1.45;}
             <li class="activity-item">
               <div class="activity-dot"></div>
               <div>
-                <div class="activity-text">{{ stats.inactive_posts }} profils masqués</div>
+                <div class="activity-text">{{ stats.inactive_posts }} profil{{ 's' if stats.inactive_posts != 1 }} masqué{{ 's' if stats.inactive_posts != 1 }}</div>
                 <div class="activity-time">Gérez la visibilité publique depuis la liste ci-dessous.</div>
               </div>
             </li>
             <li class="activity-item">
               <div class="activity-dot"></div>
               <div>
-                <div class="activity-text">{{ stats.with_experience }} profils avec expérience renseignée</div>
+                <div class="activity-text">{{ stats.with_experience }} profil{{ 's' if stats.with_experience != 1 }} avec expérience renseignée</div>
                 <div class="activity-time">Ajoutez des compétences et des années d'expérience pour renforcer la recherche.</div>
               </div>
             </li>
@@ -394,7 +402,7 @@ td{line-height:1.45;}
               <div>
                 <div class="activity-text">
                   Profil « {{ post.title }} » ajouté ({{ post.sector_label() }})
-                  {% if post.auto_discovered %}<span class="origin-pill auto">🤖 Auto-découvert</span>{% else %}<span class="origin-pill manual">✍️ Manuel</span>{% endif %}
+                  {% if post.auto_discovered %}<span class="origin-pill auto">Auto-découvert</span>{% else %}<span class="origin-pill manual">Manuel</span>{% endif %}
                 </div>
                 <div class="activity-time">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
               </div>
@@ -450,11 +458,11 @@ td{line-height:1.45;}
             </select>
             <select class="tt-select" id="ttOrigin">
               <option value="">Toutes origines</option>
-              <option value="auto">🤖 Auto-découvert</option>
-              <option value="manual">✍️ Manuel</option>
+              <option value="auto">Auto-découvert</option>
+              <option value="manual">Manuel</option>
             </select>
             <span class="tt-count" id="ttCount"></span>
-            <button type="button" class="action-btn" id="ttExport" title="Exporter les profils affichés en CSV">⬇ Export CSV</button>
+            <button type="button" class="action-btn" id="ttExport" title="Exporter les profils affichés en CSV">{{ icon('download', 14) }} Exporter CSV</button>
           </div>
 
           <div class="table-wrap">
@@ -482,9 +490,9 @@ td{line-height:1.45;}
                     <div class="name-cell">
                       <span>{{ post.title }}</span>
                       {% if post.auto_discovered %}
-                        <span class="origin-pill auto" title="Découvert automatiquement par les agents (RSS / web / GitHub)">🤖 Auto</span>
+                        <span class="origin-pill auto" title="Découvert automatiquement par les agents (RSS, web, ORCID)">Auto</span>
                       {% else %}
-                        <span class="origin-pill manual" title="Ajouté manuellement par un administrateur">✍️ Manuel</span>
+                        <span class="origin-pill manual" title="Ajouté manuellement par un administrateur">Manuel</span>
                       {% endif %}
                       {% if post.source_url | safe_url %}
                         <a href="{{ post.source_url | safe_url }}" target="_blank" rel="noopener" class="source-link" title="Voir la source">↗ source</a>
@@ -520,7 +528,7 @@ td{line-height:1.45;}
 
             {% if not posts %}
             <div class="empty-state">
-              <div class="ic">🕊️</div>
+              <div class="ic">{{ icon('inbox', 28) }}</div>
               <p>Aucun profil pour le moment. Lancez une synchronisation pour que les agents commencent à découvrir des talents.</p>
               <form method="POST" action="{{ url_for('sync_talents_admin') }}">
                 <button type="submit" class="action-btn">Lancer la première synchronisation</button>
@@ -529,7 +537,7 @@ td{line-height:1.45;}
             {% endif %}
 
             <p id="noResults" class="empty-state" style="display:none;">
-              <span class="ic" style="display:block;">🔍</span>
+              <span class="ic" style="display:block;">{{ icon('search', 26) }}</span>
               Aucun profil ne correspond à ces filtres.
             </p>
           </div>

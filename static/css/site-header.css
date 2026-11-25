@@ -1,0 +1,141 @@
+/* En-tête commun des pages publiques (templates/partials/site_header.html).
+   Classes préfixées « sh- » pour ne pas entrer en conflit avec le CSS des pages. */
+.site-header {
+  --sh-navy: #0B1E33;
+  --sh-navy-2: #16304F;
+  --sh-gold: #C9972E;
+  --sh-text: #16233A;
+  --sh-soft: #5F6B82;
+  --sh-line: rgba(11, 30, 51, .08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--sh-line);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.site-header *, .site-header *::before, .site-header *::after { box-sizing: border-box; }
+.site-header a { text-decoration: none; }
+
+.sh-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+/* ----- Marque ----- */
+.sh-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; color: var(--sh-navy); }
+.sh-brand img { height: 39px; width: auto; display: block; }
+.sh-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.sh-brand-title { font-size: 17px; font-weight: 700; letter-spacing: .01em; color: var(--sh-navy); }
+.sh-brand-sub { font-size: 11px; font-weight: 500; color: var(--sh-soft); margin-top: 2px; }
+
+/* ----- Navigation ----- */
+.sh-menu { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.sh-links { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0 auto; padding: 0; }
+.sh-links a {
+  position: relative;
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sh-text);
+  transition: color .15s, background-color .15s;
+}
+.sh-links a:hover { color: var(--sh-navy); background: rgba(11, 30, 51, .05); }
+.sh-links a.is-active { color: var(--sh-navy); font-weight: 600; }
+.sh-links a.is-active::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sh-gold);
+}
+
+/* ----- Boutons ----- */
+.sh-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+.sh-btn--primary { background: var(--sh-navy); color: #fff; box-shadow: 0 1px 2px rgba(11, 30, 51, .12); }
+.sh-btn--primary:hover { background: var(--sh-navy-2); color: #fff; }
+.sh-btn--ghost { color: var(--sh-navy); border: 1px solid rgba(11, 30, 51, .16); }
+.sh-btn--ghost:hover { border-color: var(--sh-navy); }
+.sh-links a:focus-visible, .sh-btn:focus-visible, .sh-brand:focus-visible, .sh-toggle:focus-visible {
+  outline: 2px solid var(--sh-gold);
+  outline-offset: 2px;
+}
+
+/* ----- Bouton menu (mobile) ----- */
+.site-header .sh-toggle {
+  display: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  width: 42px;
+  height: 42px;
+  color: var(--sh-navy);
+  border: 1px solid rgba(11, 30, 51, .14);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.site-header .sh-toggle:hover { background: #F7F6F2; }
+.sh-toggle span { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--sh-navy); transition: transform .2s, opacity .2s; }
+.site-header.is-open .sh-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.site-header.is-open .sh-toggle span:nth-child(2) { opacity: 0; }
+.site-header.is-open .sh-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+@media (max-width: 960px) {
+  .sh-inner { min-height: 64px; gap: 12px; padding: 0 16px; }
+  .sh-brand img { height: 34px; }
+  .site-header .sh-toggle { display: inline-flex; }
+  .sh-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--sh-line);
+    box-shadow: 0 16px 32px rgba(11, 30, 51, .10);
+  }
+  .site-header.is-open .sh-menu { display: flex; }
+  .sh-links { flex-direction: column; align-items: stretch; gap: 2px; margin: 0; }
+  .sh-links a { padding: 12px; font-size: 15px; }
+  .sh-links a.is-active { background: rgba(201, 151, 46, .10); }
+  .sh-links a.is-active::after { display: none; }
+  .sh-actions { flex-direction: column; align-items: stretch; }
+  .sh-btn { height: 46px; font-size: 15px; }
+}
+
+@media (max-width: 380px) {
+  .sh-brand-sub { display: none; }
+}

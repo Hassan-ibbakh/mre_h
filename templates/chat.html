@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Assistant IA — MRE AI</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site-header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mre-motion.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,37 +27,42 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;letter-spacing:-0.01em;}
 .container{max-width:1200px;margin:auto;padding:0 24px;}
 a{color:inherit;}
 /* HEADER identique aux autres pages */
-header{padding:18px 0;border-bottom:1px solid var(--gray);background:var(--white);flex-shrink:0;}
-.header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
-.logo{display:flex;align-items:center;gap:11px;}
-.logo-mark{width:38px;height:38px;border-radius:11px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.logo-mark svg{width:20px;height:20px;}
-.logo-title{font-size:18px;font-weight:700;color:var(--navy);font-family:'Inter',sans-serif;}
-.logo-sub{font-size:10.5px;color:var(--text-soft);}
-nav ul{display:flex;list-style:none;gap:26px;align-items:center;flex-wrap:wrap;}
-nav ul li a{text-decoration:none;font-weight:500;font-size:14px;color:var(--text);}
-nav ul li a.active{color:var(--navy);font-weight:700;}
-.btn-admin{background:var(--navy);color:var(--white) !important;padding:9px 20px;border-radius:22px;font-size:13.5px !important;}
 
 /* CHAT PAGE LAYOUT */
 .chat-page{flex:1;display:flex;min-height:0;background:var(--surface);}
 .chat-shell{max-width:1100px;margin:24px auto;width:100%;flex:1;display:flex;background:var(--white);border:1px solid var(--gray);border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(11,30,51,.06);min-height:0;}
 
-.chat-sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--gray);padding:22px;display:flex;flex-direction:column;}
-.chat-sidebar-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);font-weight:700;margin-bottom:10px;}
-.active-agent-card{background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;margin-bottom:20px;}
-.agent-pill{display:inline-flex;align-items:center;gap:7px;background:var(--green-tint);color:#2C6B2C;padding:6px 12px;border-radius:16px;font-size:12.5px;font-weight:700;}
-.agent-about{font-size:12px;color:var(--text-soft);margin-top:14px;line-height:1.55;}
-.sector-switch-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft);font-weight:700;margin-bottom:10px;}
-.sector-switch{display:flex;flex-direction:column;gap:6px;}
-.sector-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;border:1px solid transparent;background:none;text-align:left;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:.2s;}
+.chat-sidebar{width:250px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--gray);padding:22px 16px;display:flex;flex-direction:column;gap:12px;}
+.chat-sidebar-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-soft);font-weight:700;padding:0 8px;}
+.sector-switch{display:flex;flex-direction:column;gap:4px;}
+.sector-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:none;text-align:left;font:500 13.5px 'Inter',sans-serif;color:var(--text);cursor:pointer;transition:background-color .15s,border-color .15s,color .15s;}
+.sector-btn svg{width:18px;height:18px;flex-shrink:0;color:var(--text-soft);}
 .sector-btn:hover{background:var(--white);border-color:var(--gray);}
 .sector-btn.active{background:var(--navy);color:var(--white);}
+.sector-btn.active svg{color:var(--gold);}
+.sector-btn:focus-visible,.quick-reply:focus-visible,.chat-input-area button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+.active-agent-card{margin-top:auto;background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;}
+.agent-about-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.agent-about{font-size:12px;color:var(--text-soft);line-height:1.55;}
 
 .chat-main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
-.chat-header{padding:18px 24px;border-bottom:1px solid var(--gray);}
-.chat-header h1{font-size:17px;color:var(--navy);}
-.chat-header p{font-size:12.5px;color:var(--text-soft);margin-top:2px;}
+.chat-header{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--gray);}
+.chat-header-icon{width:40px;height:40px;border-radius:11px;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-header-icon svg{width:21px;height:21px;}
+.chat-header h1{font-size:18px;color:var(--navy);line-height:1.25;}
+.chat-header p{font-size:12.5px;color:var(--text-soft);margin-top:1px;}
+.chat-disclaimer{padding:0 24px 12px;font-size:11px;color:var(--text-soft);text-align:center;}
+.chat-input-area button{display:flex;align-items:center;justify-content:center;}
+.chat-input-area button svg{width:19px;height:19px;}
+.markdown-content p{margin:0 0 8px;}
+.markdown-content p:last-child{margin-bottom:0;}
+.markdown-content h1,.markdown-content h2,.markdown-content h3{font-family:'Inter',sans-serif;font-weight:700;color:var(--navy);line-height:1.35;margin:14px 0 6px;}
+.markdown-content h1{font-size:16px;}.markdown-content h2{font-size:15px;}.markdown-content h3{font-size:14px;}
+.markdown-content > :first-child{margin-top:0;}
+.markdown-content li{margin:3px 0;}
+.markdown-content table{border-collapse:collapse;margin:8px 0;font-size:13px;display:block;overflow-x:auto;}
+.markdown-content th,.markdown-content td{border:1px solid var(--gray);padding:5px 8px;text-align:left;}
+.markdown-content code{background:var(--navy-tint);padding:1px 5px;border-radius:4px;font-size:.92em;}
 .chat-messages{flex:1;padding:24px;overflow-y:auto;background:var(--white);min-height:0;}
 .msg{margin-bottom:16px;max-width:76%;}
 .msg.user{margin-left:auto;}
@@ -80,118 +86,134 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
 
 @media (max-width:800px){
   .chat-page{padding:14px 16px 18px;}
-  .chat-shell{flex-direction:column;margin:0 auto;border-radius:10px;min-height:calc(100dvh - 124px);}
-  .chat-sidebar{display:grid;width:100%;grid-template-columns:minmax(0,1fr);gap:8px;flex-direction:column;padding:12px 14px;border-right:none;border-bottom:1px solid var(--gray);}
-  .chat-sidebar-label{display:none;}
-  .active-agent-card{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:8px 10px;}
-  .agent-about{max-width:260px;margin:0;font-size:11px;}
-  .sector-switch-label{margin:2px 0 0;}
-  .sector-switch{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
-  .sector-btn{flex:0 0 auto;}
+  .chat-shell{flex-direction:column;margin:0 auto;border-radius:10px;min-height:0;}
+  .chat-sidebar{width:100%;padding:10px 12px;border-right:none;border-bottom:1px solid var(--gray);gap:0;}
+  .chat-sidebar-label,.active-agent-card{display:none;}
+  .sector-switch{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:2px;scrollbar-width:none;}
+  .sector-switch::-webkit-scrollbar{display:none;}
+  .sector-btn{flex:0 0 auto;padding:8px 12px;border-color:var(--gray);background:var(--white);font-size:13px;}
+  .chat-disclaimer{padding:0 16px 10px;}
   .chat-messages{padding:18px;}
   .msg{max-width:88%;}
   .quick-replies{padding:12px 16px;}
   .chat-input-area{padding:12px 16px;}
   .chat-input-area input{min-width:0;font-size:16px;}
 }
-@media(max-width:480px){.chat-page{padding:0;}.chat-shell{min-height:calc(100dvh - 112px);border:0;border-radius:0;}.chat-sidebar{padding:10px 12px;}.active-agent-card{align-items:flex-start;flex-direction:column;gap:5px;}.agent-about{max-width:none;}.chat-header{padding:14px 16px;}.chat-messages{padding:14px;}.msg{max-width:94%;}}
+@media(max-width:480px){.chat-page{padding:0;}.chat-shell{border:0;border-radius:0;}.chat-header{padding:12px 16px;}.chat-header-icon{width:34px;height:34px;}.chat-header h1{font-size:16px;}.chat-messages{padding:14px;}.msg{max-width:94%;}.quick-replies{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}.quick-reply{flex:0 0 auto;}}
 </style>
 </head>
 <body>
-<header>
-  <div class="container header-inner">
-    <div class="logo">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MRE AI" style="height:38px;width:auto;">
-      <div><div class="logo-title">MRE AI</div><div class="logo-sub">Intelligence au service du pays</div></div>
-    </div>
-    <nav>
-      <ul>
-        <li><a href="{{ url_for('home') }}">Accueil</a></li>
-        <li><a href="{{ url_for('opportunities') }}">Opportunités</a></li>
-        <li><a href="{{ url_for('chat_page') }}" class="active">Assistant IA</a></li>
-        <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
-        <li><a href="{{ url_for('home') }}#about">À propos</a></li>
-        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
-      </ul>
-    </nav>
-  </div>
-</header>
+{% set active = 'chat' %}{% include 'partials/site_header.html' %}
 
 <div class="chat-page">
   <div class="chat-shell">
     <div class="chat-sidebar">
-      <div class="chat-sidebar-label">Agent actif</div>
+      <div class="chat-sidebar-label">Secteurs</div>
+      <div class="sector-switch" id="sectorSwitch" role="tablist" aria-label="Choisir un secteur"></div>
       <div class="active-agent-card">
-        <span id="agentPill" class="agent-pill">🏠 Immobilier</span>
-        <div class="agent-about"><strong>À propos de cet agent</strong><br>Répond en s'appuyant uniquement sur des sources vérifiées propres à chaque secteur d'investissement au Maroc.</div>
-      </div>
-      <div class="sector-switch-label">Changer de secteur</div>
-      <div class="sector-switch">
-        <button class="sector-btn active" data-sector="real_estate">🏠 Immobilier</button>
-        <button class="sector-btn" data-sector="agriculture">🌱 Agriculture</button>
-        <button class="sector-btn" data-sector="industry">🏭 Industrie</button>
-        <button class="sector-btn" data-sector="tourism">🌴 Tourisme</button>
+        <div class="agent-about-title">Comment ça marche</div>
+        <p class="agent-about">Chaque agent répond uniquement à partir des documents officiels de son secteur et cite ses sources.</p>
       </div>
     </div>
     <div class="chat-main">
       <div class="chat-header">
-        <h1>Assistant IA MRE</h1>
-        <p>Votre expert juridique pour investir au Maroc.</p>
-      </div>
-      <div id="chatMessages" class="chat-messages">
-        <div class="msg bot">
-          <div class="msg-bubble markdown-content">Bonjour ! Comment puis-je vous aider à investir au Maroc ?</div>
+        <span class="chat-header-icon" id="agentIcon" aria-hidden="true"></span>
+        <div>
+          <h1 id="agentTitle">Assistant Immobilier</h1>
+          <p>Réponses sourcées à partir des documents officiels indexés.</p>
         </div>
       </div>
+      <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
       <div class="quick-replies" id="quickReplies"></div>
       <div class="chat-input-area">
-        <input type="text" id="chatInput" placeholder="Posez une question à l'agent IA..." autofocus>
-        <button id="sendChatBtn">➤</button>
+        <input type="text" id="chatInput" placeholder="Posez votre question…" aria-label="Votre question" autocomplete="off">
+        <button id="sendChatBtn" type="button" aria-label="Envoyer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
       </div>
+      <p class="chat-disclaimer">Informations indicatives issues des documents indexés — elles ne remplacent pas un conseil juridique ou fiscal.</p>
     </div>
   </div>
 </div>
 
 <script>
-  const SECTOR_ICONS = { real_estate:'🏠', agriculture:'🌱', industry:'🏭', tourism:'🌴' };
-  const SECTOR_LABELS = { real_estate:'Immobilier', agriculture:'Agriculture', industry:'Industrie', tourism:'Tourisme' };
-  const SECTOR_WELCOME = {
-    real_estate: "Bonjour ! Posez votre question sur l'immobilier au Maroc : droits, fiscalité, crédit, VEFA.",
-    agriculture: "Bonjour ! Parlez-moi de votre projet agricole au Maroc.",
-    industry: "Bonjour ! Parlons industrie et opportunités au Maroc.",
-    tourism: "Bonjour ! Découvrons les opportunités touristiques du Maroc."
-  };
-  // Questions suggérées propres à chaque secteur (évite de montrer les mêmes
-  // questions d'immobilier pour les secteurs agriculture / industrie / tourisme).
-  const SECTOR_QUESTIONS = {
-    real_estate: [
-      { label: "Droits d'enregistrement", question: "Quels sont les droits d'enregistrement pour un achat immobilier ?" },
-      { label: "Rendements locatifs", question: "Quels sont les rendements locatifs à Tanger ?" },
-      { label: "VEFA / prévente", question: "Comment fonctionne la vente en l'état futur d'achèvement (VEFA) au Maroc ?" },
-      { label: "Crédit immo MRE", question: "Quelles sont les conditions de crédit immobilier pour un MRE au Maroc ?" },
-    ],
-    agriculture: [
-      { label: "Foncier agricole", question: "Un MRE peut-il acheter du foncier agricole au Maroc ?" },
-      { label: "Subventions", question: "Quelles subventions sont accordées pour l'investissement agricole ?" },
-      { label: "Domaine Agricole", question: "Qu'est-ce que le Domaine Agricole et comment en bénéficier ?" },
-      { label: "Crédit agricole", question: "Quels crédits sont disponibles pour l'agriculture au Maroc ?" },
-    ],
-    industry: [
-      { label: "Zones industrielles", question: "Quelles zones industrielles sont ouvertes aux MRE ?" },
-      { label: "Avantages fiscaux", question: "Quels avantages fiscaux pour l'investissement industriel ?" },
-      { label: "Création entreprise", question: "Comment créer une entreprise industrielle au Maroc en tant que MRE ?" },
-    ],
-    tourism: [
-      { label: "Investir tourisme", question: "Comment investir dans le tourisme au Maroc ?" },
-      { label: "Établissements hôteliers", question: "Quelles aides pour créer des établissements hôteliers ?" },
-      { label: "Résidences touristiques", question: "Quel cadre pour les résidences touristiques au Maroc ?" },
-    ],
-  };
+  // Secteurs proposés : un par dossier data/<secteur>/ indexé (voir main.py,
+  // _SECTOR_CODE_TO_FOLDER). Les questions suggérées portent sur le contenu
+  // réellement présent dans la base de chaque secteur.
+  const ICON = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  const SECTORS = [
+    { key: 'real_estate', label: 'Immobilier',
+      icon: ICON('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>'),
+      welcome: "Bonjour ! Posez votre question sur l'achat immobilier au Maroc : fiscalité, droits d'enregistrement, comptes en dirhams, transferts.",
+      questions: [
+        { label: "Droits d'enregistrement", question: "Quels sont les droits d'enregistrement pour un MRE qui achète un bien immobilier ?" },
+        { label: "Compte en dirhams convertibles", question: "Quelles sont les conditions pour ouvrir un compte en dirhams convertibles ?" },
+        { label: "Rapatriement du produit de vente", question: "Comment un MRE peut-il transférer à l'étranger le produit de la vente d'un bien ?" },
+        { label: "Vente en l'état futur d'achèvement", question: "Quelles garanties protègent l'acquéreur dans une vente en l'état futur d'achèvement ?" },
+      ] },
+    { key: 'agriculture', label: 'Agriculture',
+      icon: ICON('<path d="M12 21v-9"/><path d="M12 12c0-4 3-7 8-7 0 5-3 8-8 7Z"/><path d="M12 15c0-3-2.5-6-7-6 0 4 2.5 6.5 7 6Z"/>'),
+      welcome: "Bonjour ! Interrogez les statistiques agricoles du Maroc : production végétale, cheptel, évolution par filière.",
+      questions: [
+        { label: "Production céréalière", question: "Comment a évolué la production céréalière au Maroc entre 2010 et 2022 ?" },
+        { label: "Cheptel", question: "Quel est l'effectif du cheptel au Maroc par espèce ?" },
+        { label: "Cultures maraîchères", question: "Quelle est la production des cultures maraîchères au Maroc ?" },
+      ] },
+    { key: 'industry', label: 'Industrie',
+      icon: ICON('<path d="M3 21V10l6 4V10l6 4V6h6v15Z"/><path d="M7 17h2M12 17h2M17 17h2"/>'),
+      welcome: "Bonjour ! Je vous oriente sur l'accompagnement des entreprises : e-services administratifs, prestataires et experts référencés.",
+      questions: [
+        { label: "E-services entreprises", question: "Quels e-services administratifs sont disponibles pour les entreprises ?" },
+        { label: "E-services citoyens", question: "Quels e-services en ligne sont proposés aux citoyens ?" },
+        { label: "Prestataires ANPME", question: "Quels prestataires sont référencés par l'ANPME ?" },
+      ] },
+    { key: 'tourism', label: 'Tourisme',
+      icon: ICON('<circle cx="12" cy="8" r="3.2"/><path d="M12 2v1.5M12 12.5V14M6.5 8H5M19 8h-1.5M8.1 4.1l1 1M14.9 10.9l1 1M8.1 11.9l1-1M14.9 5.1l1-1"/><path d="M3 20c3-2.5 6-2.5 9 0s6 2.5 9 0"/>'),
+      welcome: "Bonjour ! Explorez les chiffres du tourisme marocain : arrivées, nuitées et capacité hôtelière.",
+      questions: [
+        { label: "Arrivées par nationalité", question: "Quelles sont les principales nationalités des touristes arrivés au Maroc ?" },
+        { label: "Capacité hôtelière", question: "Comment évolue la capacité hôtelière classée par destination ?" },
+        { label: "Nuitées par marché", question: "Quels marchés génèrent le plus de nuitées dans les établissements touristiques ?" },
+      ] },
+    { key: 'finance', label: 'Finance publique',
+      icon: ICON('<path d="M3 21h18"/><path d="M4 10h16L12 4Z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8"/>'),
+      welcome: "Bonjour ! Posez vos questions sur les finances publiques marocaines : dette du Trésor, budget de l'État, balance des paiements.",
+      questions: [
+        { label: "Dette du Trésor", question: "Comment a évolué l'encours de la dette du Trésor ?" },
+        { label: "Balance des paiements", question: "Quel est le solde des échanges extérieurs et de la balance des paiements ?" },
+        { label: "Budget de l'État", question: "Quelles sont les principales dépenses du budget de l'État ?" },
+      ] },
+    { key: 'douane', label: 'Commerce extérieur',
+      icon: ICON('<path d="M3 15h18l-2 5H5Z"/><path d="M6 15V9h5v6M11 15V6h5v9"/><path d="M12 3v3"/>'),
+      welcome: "Bonjour ! Consultez les données du commerce extérieur 2025 : importations, exportations et principaux produits.",
+      questions: [
+        { label: "Principales exportations", question: "Quels sont les principaux produits exportés par le Maroc en 2025 ?" },
+        { label: "Principales importations", question: "Quels sont les principaux produits importés par le Maroc en 2025 ?" },
+      ] },
+  ];
+  const SECTOR_BY_KEY = Object.fromEntries(SECTORS.map(s => [s.key, s]));
+  const SECTOR_LABELS = Object.fromEntries(SECTORS.map(s => [s.key, s.label]));
+  const SECTOR_WELCOME = Object.fromEntries(SECTORS.map(s => [s.key, s.welcome]));
+  const SECTOR_QUESTIONS = Object.fromEntries(SECTORS.map(s => [s.key, s.questions]));
+
+  // Boutons de secteur générés depuis la configuration (contenu statique de confiance).
+  const sectorSwitch = document.getElementById('sectorSwitch');
+  SECTORS.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sector-btn' + (i === 0 ? ' active' : '');
+    btn.dataset.sector = s.key;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    btn.innerHTML = `${s.icon}<span>${s.label}</span>`;
+    sectorSwitch.appendChild(btn);
+  });
   const messagesDiv = document.getElementById('chatMessages');
   const input = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendChatBtn');
   const quickRepliesDiv = document.getElementById('quickReplies');
-  const agentPill = document.getElementById('agentPill');
+  const agentIcon = document.getElementById('agentIcon');
+  const agentTitle = document.getElementById('agentTitle');
   const sectorBtns = document.querySelectorAll('.sector-btn');
 
   function renderQuickReplies(sector) {
@@ -210,9 +232,6 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
   // Historique de conversation separe par secteur, garde en memoire cote client
   const histories = {
     real_estate: [{ sender: 'bot', html: SECTOR_WELCOME.real_estate, sources: [] }],
-    agriculture: null,
-    industry: null,
-    tourism: null,
   };
   let currentSector = 'real_estate';
 
@@ -246,16 +265,22 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  function setActiveSector(sector){
+  function setActiveSector(sector, focusInput = true){
     currentSector = sector;
-    agentPill.textContent = `${SECTOR_ICONS[sector] || ''} ${SECTOR_LABELS[sector] || sector}`.trim();
-    sectorBtns.forEach(b => b.classList.toggle('active', b.dataset.sector === sector));
+    const config = SECTOR_BY_KEY[sector];
+    agentIcon.innerHTML = config ? config.icon : '';
+    agentTitle.textContent = `Assistant ${SECTOR_LABELS[sector] || sector}`;
+    sectorBtns.forEach(b => {
+      const isActive = b.dataset.sector === sector;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', String(isActive));
+    });
     if (!histories[sector]) {
       histories[sector] = [{ sender: 'bot', html: SECTOR_WELCOME[sector] || '', sources: [] }];
     }
     renderHistory(sector);
     renderQuickReplies(sector);
-    input.focus();
+    if (focusInput) input.focus();
   }
 
   // Échappe tout texte brut (saisie utilisateur, messages d'erreur) avant
@@ -407,12 +432,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
   // agent, sans envoyer de message automatiquement
   const params = new URLSearchParams(window.location.search);
   const initialSector = params.get('sector');
-  if (initialSector && SECTOR_LABELS[initialSector]) {
-    setActiveSector(initialSector);
-  } else {
-    renderHistory(currentSector);
-    renderQuickReplies(currentSector);
-  }
+  setActiveSector(initialSector && SECTOR_LABELS[initialSector] ? initialSector : currentSector, false);
 
 </script>
 </body>

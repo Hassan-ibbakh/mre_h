@@ -83,6 +83,22 @@ def _display_source_name(source: str) -> str:
     return re.sub(r"[_-]+", " ", name).strip().title()
 
 
+_SOURCE_LINE_RE = re.compile(r"^\*\*Source\s*:\*\*\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
+
+
+def _source_label(content: str, source: str) -> str:
+    """Nom de source lisible pour l'affichage (organisme émetteur).
+
+    Les fiches de data/investissement/ commencent par une ligne
+    « **Source:** Collecte ... - Centre Régional d'Investissement X » : on en
+    garde l'organisme. À défaut, nom de fichier mis en forme."""
+    match = _SOURCE_LINE_RE.search(content)
+    if match:
+        label = match.group(1).strip()
+        return label.rsplit(" - ", 1)[-1].strip() or label
+    return _display_source_name(source)
+
+
 def _parse_json_response(content: str) -> dict:
     """Accepte un objet JSON brut ou encapsulé dans un bloc Markdown."""
     cleaned = content.strip()
@@ -273,6 +289,7 @@ def extract_opportunities(records: list[dict], limit: int = 8) -> list[dict]:
             "region": region,
             "excerpt": excerpt,
             "source": entry["source"],
+            "source_label": _source_label(content, entry["source"]),
             "application_url": _extract_application_url(content),
         })
 
