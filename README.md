@@ -96,6 +96,13 @@ ADMIN_PASSWORD=<mot de passe fort>
 ```
 
 `ADMIN_EMAIL` / `ADMIN_PASSWORD` créent (ou promeuvent) le compte administrateur au démarrage.
+
+Mot de passe oublié ou aucun administrateur ? Créer/réinitialiser un compte admin
+(mot de passe demandé de façon masquée) :
+
+```powershell
+python create_admin.py vous@example.com
+```
 Les autres variables sont documentées dans [.env.example](.env.example) et [config.py](config.py).
 
 ## Remplir la base de connaissances

@@ -19,6 +19,7 @@ py-modules = [
 	"clean_chromadb",
 	"clean_pdf",
 	"config",
+	"create_admin",
 	"database",
 	"ingest",
 	"ingest_invest",
