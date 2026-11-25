@@ -1,9 +1,8 @@
 """
 ChatOpenAI (langchain_openai) pointe sur l'endpoint OpenRouter, avec retry
 multi-cles sur 401/429, limite a MAX_RETRIES_PER_CALL tentatives PAR APPEL
-(pas pool_size()) -- meme logique/raisonnement que l'ancien RetryableChatGroq,
-transpose sur OpenRouter (qui expose une API OpenAI-compatible, d'ou l'usage
-de ChatOpenAI plutot que d'un client dedie).
+(pas pool_size()). OpenRouter expose une API OpenAI-compatible, d'ou l'usage
+de ChatOpenAI plutot que d'un client dedie.
 
 Design identique a l'original : l'instance parente (self) est construite
 normalement avec une VRAIE cle du pool -- elle sert uniquement a satisfaire
@@ -16,7 +15,7 @@ rotation ne s'applique).
 
 OpenRouter renvoie des erreurs au format openai (openai.AuthenticationError /
 openai.RateLimitError leves par le SDK openai sous-jacent de ChatOpenAI),
-d'ou l'usage de ces exceptions plutot que celles du SDK groq.
+d'ou l'usage de ces exceptions.
 """
 import logging
 import time

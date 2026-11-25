@@ -40,7 +40,11 @@ class Settings(BaseSettings):
     )
     LLM_TEMPERATURE: float = Field(default=0.1, ge=0.0, le=1.0)
     LLM_MAX_TOKENS: int = Field(default=4096, gt=0, le=32768)
-    SECRET_KEY: str = Field(default="dev_secret_key_change_in_production")
+    SECRET_KEY: str = Field(
+        default="dev_secret_key_change_in_production",
+        min_length=16,
+        description="Clé de signature des cookies de session (valeur aléatoire obligatoire en production).",
+    )
     ADMIN_EMAIL: str = Field(default="", description="Email configuré pour créer l'administrateur initial.")
     ADMIN_PASSWORD: str = Field(default="", description="Mot de passe configuré pour créer l'administrateur initial.")
     # ----- Observatoire des Talents MRE (agents LangChain) -----

@@ -176,7 +176,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
         <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
         <li><a href="{{ url_for('observatory') }}" class="active">Observatoire</a></li>
         <li><a href="{{ url_for('home') }}#about">À propos</a></li>
-        <li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>
+        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
       </ul>
     </nav>
   </div>
@@ -235,8 +235,8 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
            data-source-url="{{ post.source_url or '' }}"
            data-review-status="{{ post.review_status }}">
         <div class="talent-card__head">
-          {% if post.image_url %}
-          <img src="{{ post.image_url }}" alt="{{ post.title }}" class="talent-card__avatar">
+          {% if post.image_url | safe_url %}
+          <img src="{{ post.image_url | safe_url }}" alt="{{ post.title }}" class="talent-card__avatar">
           {% else %}
           <div class="talent-card__avatar">{{ post.initials() }}</div>
           {% endif %}
@@ -255,7 +255,7 @@ footer p.copyright{opacity:.55;font-size:12.5px;}
         <div class="talent-card__foot">
           <span class="talent-card__source">
             {% if post.source_name or post.source_url %}
-              {% if post.source_url %}<a href="{{ post.source_url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">{{ post.source_name or 'Source' }}</a>{% else %}{{ post.source_name }}{% endif %}
+              {% if post.source_url | safe_url %}<a href="{{ post.source_url | safe_url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">{{ post.source_name or 'Source' }}</a>{% else %}{{ post.source_name }}{% endif %}
             {% endif %}
           </span>
           <span class="talent-card__cta">Voir le profil →</span>
@@ -317,6 +317,23 @@ function initials(name){
   return name.split(' ').slice(0,2).map(p=>p[0] || '').join('').toUpperCase();
 }
 
+// Les profils proviennent en partie du web (découverte automatique) :
+// toute donnée injectée en HTML est échappée, et seules les URLs http(s)
+// sont acceptées (bloque javascript:, data:, etc.).
+function esc(value){
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function safeUrl(value){
+  try {
+    const url = new URL(String(value || ''), window.location.origin);
+    return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : '';
+  } catch (e) {
+    return '';
+  }
+}
+
 function uniqueMatches(matches){
   const seen = new Set();
   return (matches || []).filter(function(m){
@@ -345,8 +362,9 @@ function openModal(data){
   if(data.years) locParts.push(data.years + " ans d'expérience");
   modalLoc.textContent = locParts.join(' · ') || 'Localisation non précisée';
 
-  if(data.image){
-    modalAvatar.innerHTML = '<img src="' + data.image + '" alt="' + data.name + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+  const imageUrl = safeUrl(data.image);
+  if(imageUrl){
+    modalAvatar.innerHTML = '<img src="' + esc(imageUrl) + '" alt="' + esc(data.name) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
   } else {
     modalAvatar.textContent = initials(data.name || '?');
   }
@@ -354,7 +372,7 @@ function openModal(data){
   const allTags = [];
   if(data.sectorLabel) allTags.push({text:data.sectorLabel, cls:'navy'});
   (data.tags || []).forEach(t => { if(t) allTags.push({text:t, cls:'green'}); });
-  modalTags.innerHTML = allTags.map(t => '<span class="tag-pill ' + t.cls + '">' + t.text + '</span>').join('');
+  modalTags.innerHTML = allTags.map(t => '<span class="tag-pill ' + t.cls + '">' + esc(t.text) + '</span>').join('');
 
   if(data.description && data.description.trim()){
     modalDescription.textContent = data.description;
@@ -364,11 +382,12 @@ function openModal(data){
     modalDescription.classList.add('empty');
   }
 
-  if(data.sourceName || data.sourceUrl){
+  const sourceUrl = safeUrl(data.sourceUrl);
+  if(data.sourceName || sourceUrl){
     modalSourceWrap.style.display = '';
-    modalSource.innerHTML = data.sourceUrl
-      ? '<a href="' + data.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + (data.sourceName || 'Voir la source') + '</a>'
-      : (data.sourceName || '');
+    modalSource.innerHTML = sourceUrl
+      ? '<a href="' + esc(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(data.sourceName || 'Voir la source') + '</a>'
+      : esc(data.sourceName || '');
   } else {
     modalSourceWrap.style.display = 'none';
   }
@@ -412,29 +431,29 @@ async function search(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({message})
     });
-    const data = await res.json();
+    const data = await res.json().catch(function(){ return {}; });
     if(!res.ok){
-      aiMsgText.textContent = data.error || "Une erreur est survenue.";
+      aiMsgText.textContent = data.detail || data.error || "Une erreur est survenue.";
       return;
     }
     const matches = uniqueMatches(data.matches || []);
     if(matches.length){
       aiMsgText.textContent = data.response || "Voici les profils correspondant à votre recherche.";
       matchGrid.innerHTML = matches.map(function(m, i){
-        const pct = m.match_score ?? 0;
+        const pct = Math.max(0, Math.min(100, parseInt(m.match_score, 10) || 0));
         const sectorKey = SECTOR_KEY_BY_LABEL[m.sector_label] || 'other';
-        const years = (m.years_experience && m.years_experience !== '?') ? ' · ' + m.years_experience + ' ans' : '';
+        const years = (m.years_experience && m.years_experience !== '?') ? ' · ' + esc(m.years_experience) + ' ans' : '';
         return '<div class="match-card talent-card" data-sector="' + sectorKey + '" data-match-index="' + i + '">' +
           '<div class="talent-card__head">' +
-            '<div class="talent-card__avatar">' + initials(m.title || '?') + '</div>' +
+            '<div class="talent-card__avatar">' + esc(initials(m.title || '?')) + '</div>' +
             '<div class="talent-card__id">' +
-              '<div class="talent-card__name">' + (m.title || 'Profil sans nom') + '</div>' +
-              '<div class="talent-card__meta">' + PIN_SVG + (m.country || 'Pays non précisé') + years + '</div>' +
+              '<div class="talent-card__name">' + esc(m.title || 'Profil sans nom') + '</div>' +
+              '<div class="talent-card__meta">' + PIN_SVG + esc(m.country || 'Pays non précisé') + years + '</div>' +
             '</div>' +
             '<div class="match-ring" style="--pct:' + pct + '"><span>' + pct + '%</span></div>' +
           '</div>' +
-          '<div class="talent-card__sector">' + (m.sector_label || 'Secteur inconnu') + '</div>' +
-          '<div class="talent-card__tags">' + (m.tags || []).map(function(t){ return '<span class="tag-pill">' + t + '</span>'; }).join('') + '</div>' +
+          '<div class="talent-card__sector">' + esc(m.sector_label || 'Secteur inconnu') + '</div>' +
+          '<div class="talent-card__tags">' + (m.tags || []).map(function(t){ return '<span class="tag-pill">' + esc(t) + '</span>'; }).join('') + '</div>' +
           '<div class="talent-card__foot">' +
             '<span class="talent-card__source"></span>' +
             '<span class="talent-card__cta">Voir le profil →</span>' +

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <style>
 :root{
   --navy:#0B1E33; --navy-2:#16304F; --navy-tint:#E7ECF3;
@@ -109,7 +110,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
         <li><a href="{{ url_for('chat_page') }}" class="active">Assistant IA</a></li>
         <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
         <li><a href="{{ url_for('home') }}#about">À propos</a></li>
-        <li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>
+        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
       </ul>
     </nav>
   </div>
@@ -231,7 +232,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
     let metaHtml = timeNow();
     if (msg.sender === 'user') metaHtml += ' ✓';
     if (msg.sender === 'bot' && msg.sources && msg.sources.length > 0) {
-      metaHtml = `<span class="source-tag">Source : ${msg.sources.join(', ')}</span>`;
+      metaHtml = `<span class="source-tag">Source : ${escapeHtml(msg.sources.join(', '))}</span>`;
     }
     meta.innerHTML = metaHtml;
     wrap.appendChild(meta);
@@ -256,8 +257,35 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
     input.focus();
   }
 
+  // Échappe tout texte brut (saisie utilisateur, messages d'erreur) avant
+  // insertion en HTML.
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Markdown du LLM -> HTML nettoyé par DOMPurify. Si le CDN est
+  // indisponible, on n'injecte jamais de HTML brut : texte échappé.
+  function markdownToSafeHtml(markdown) {
+    if (window.marked && window.DOMPurify) {
+      return DOMPurify.sanitize(marked.parse(markdown));
+    }
+    return escapeHtml(markdown).replace(/\n/g, '<br>');
+  }
+
+  // Un même document renvoie souvent plusieurs chunks : on dédoublonne.
+  function uniqueSourceLabels(sources) {
+    const labels = [];
+    (sources || []).forEach(s => {
+      const label = s.page ? `${s.source} · p.${s.page}` : s.source;
+      if (label && !labels.includes(label)) labels.push(label);
+    });
+    return labels;
+  }
+
   function addMessage(text, sender, sources = []) {
-    const msg = { sender, html: text, sources };
+    const msg = { sender, html: escapeHtml(text).replace(/\n/g, '<br>'), sources };
     histories[currentSector].push(msg);
     renderMessage(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -317,7 +345,7 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
       let sources = [];
       const render = () => {
         try {
-          bubble.innerHTML = (window.marked ? marked.parse(markdown) : markdown.replace(/\n/g, '<br>'));
+          bubble.innerHTML = markdownToSafeHtml(markdown);
         } catch (e) {
           bubble.textContent = markdown;
         }
@@ -355,15 +383,14 @@ nav ul li a.active{color:var(--navy);font-weight:700;}
         }
       }
       msg.html = bubble.innerHTML;
-      msg.sources = sources.map(s => s.source);
+      msg.sources = uniqueSourceLabels(sources);
       meta.innerHTML = msg.sources.length > 0
-        ? `<span class="source-tag">Source : ${msg.sources.join(', ')}</span>`
+        ? `<span class="source-tag">Source : ${escapeHtml(msg.sources.join(', '))}</span>`
         : timeNow();
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } catch (error) {
       removeTyping();
       addMessage("Impossible de joindre le serveur. Vérifiez que le backend est bien lancé.", 'bot');
-      console.error(error);
     }
   }
 

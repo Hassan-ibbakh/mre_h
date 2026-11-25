@@ -16,10 +16,15 @@ instance/
 
 # ===== Environnement Python =====
 venv/
-.egg-info/
+.venv/
+*.egg-info/
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+
+# Index ChromaDB temporaire (reconstruction avant remplacement de chroma_db/)
+chroma_db_new/
 
 # ===== Données locales générées =====
 # (chroma_db et data/ sont COMMITTÉS pour la démo : pré-construits)

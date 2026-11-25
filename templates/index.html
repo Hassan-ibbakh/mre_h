@@ -231,7 +231,7 @@ footer p.copyright{opacity:.4;font-size:12px;}
         <li><a href="{{ url_for('chat_page') }}">Assistant IA</a></li>
         <li><a href="{{ url_for('observatory') }}">Observatoire</a></li>
         <li><a href="#about">À propos</a></li>
-        <li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>
+        {% if user %}<li><a href="{{ url_for('logout') }}" class="btn-admin">Déconnexion</a></li>{% else %}<li><a href="{{ url_for('login') }}" class="btn-admin">Se connecter</a></li>{% endif %}
       </ul>
     </nav>
   </div>

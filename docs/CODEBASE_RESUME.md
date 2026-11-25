@@ -2,6 +2,10 @@
 
 Date de l'audit : 2026-08-11 — Analyse statique uniquement (aucun code exécuté).
 
+> **Document historique.** La plupart des points bloquants du §6 ont été corrigés depuis
+> (requirements, `create_default_admin_if_missing`, doublon `sync_talents_dynamic`, contrôle
+> d'accès admin). Se référer au [README](../README.md) pour l'état actuel.
+
 ---
 
 ## 1. Vue d'ensemble

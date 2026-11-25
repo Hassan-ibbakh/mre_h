@@ -1,54 +1,55 @@
 #!/usr/bin/env python
+"""Ré-ingère les fiches d'investissement puis déclenche leur validation LLM.
+
+Usage :
+    python ingest_invest.py
+
+Équivaut au bouton « Ingérer les opportunités » du dashboard admin :
+1. ingestion de data/investissement/ dans la collection ChromaDB configurée
+   (les sources supprimées du dossier sont purgées de l'index) ;
+2. validation des opportunités par le LLM (résultat mis en cache dans les
+   métadonnées ChromaDB).
+"""
+
+from __future__ import annotations
+
 from pathlib import Path
-from chromadb import PersistentClient
-from langchain_huggingface import HuggingFaceEmbeddings
-import torch
+
+from loguru import logger
+
 from config import get_settings
-from ingest import ingest_document
+from ingest import ingest_path
 from rag_engine import get_rag_opportunities
 
-settings = get_settings()
+INVEST_DIR = Path("data/investissement")
 
-# Initialiser ChromaDB et embeddings
-client = PersistentClient(path=settings.CHROMA_PERSIST_DIR)
-collection = client.get_or_create_collection(
-    name=settings.CHROMA_COLLECTION,
-    metadata={"hnsw:space": "cosine"}
-)
 
-# Déterminer le device
-device = "cuda" if torch.cuda.is_available() else "cpu"
-embeddings = HuggingFaceEmbeddings(
-    model_name=settings.EMBEDDING_MODEL,
-    model_kwargs={"device": device},
-    encode_kwargs={"batch_size": settings.EMBEDDING_BATCH_SIZE}
-)
+def main() -> None:
+    settings = get_settings()
 
-# Chemin vers les fichiers invest
-invest_dir = Path('data/investissement')
-invest_files = sorted(invest_dir.glob('invest*.md'))
-
-print(f"\n📁 Ingestion des fichiers invest depuis {invest_dir}...\n")
-
-for file_path in invest_files:
-    print(f"  ⬆️  {file_path.name}...")
-    chunks_count = ingest_document(
-        path=file_path,
-        collection=collection,
-        embeddings=embeddings,
-        sector="investissement",
-        skip_existing=False  # Force re-ingest for update
+    logger.info("Ingestion des fiches d'investissement depuis '{}'...", INVEST_DIR)
+    files, chunks = ingest_path(
+        INVEST_DIR,
+        persist_dir=settings.CHROMA_PERSIST_DIR,
+        collection_name=settings.CHROMA_COLLECTION,
+        embedding_model=settings.EMBEDDING_MODEL,
+        batch_size=settings.EMBEDDING_BATCH_SIZE,
+        prune_missing=True,
     )
-    print(f"     ✓ {chunks_count} chunks indexés\n")
+    logger.info("{} fichier(s), {} chunk(s) indexé(s).", files, chunks)
 
-print("\n" + "="*60)
-print("🔍 Validation des opportunités invest...\n")
+    logger.info("Validation LLM des opportunités...")
+    opportunities = get_rag_opportunities(settings, limit=100)
+    logger.info("{} opportunité(s) validée(s).", len(opportunities))
+    for opportunity in opportunities:
+        logger.info(
+            "- {} | secteur : {} | région : {} | source : {}",
+            opportunity["title"][:70],
+            opportunity["sector"],
+            opportunity.get("region") or "N/A",
+            opportunity["source"],
+        )
 
-# Déclenche la validation LLM
-opportunities = get_rag_opportunities(settings, limit=100)
 
-print(f"\n✓ Opportunités trouvées : {len(opportunities)}\n")
-for o in opportunities:
-    print(f"  📌 {o['title'][:70]}")
-    print(f"     Secteur: {o['sector']} | Région: {o.get('region', 'N/A')}")
-    print(f"     Source: {o['source']}\n")
+if __name__ == "__main__":
+    main()

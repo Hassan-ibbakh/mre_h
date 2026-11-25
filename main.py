@@ -2,17 +2,15 @@
 
 TROIS univers servis par le même backend :
 
-1) API moderne (streaming SSE, Markdown pur) :
+1) API de chat RAG (streaming SSE, Markdown pur) :
    - POST /api/v1/chat/real-estate : RAG ChromaDB -> prompt -> OpenRouter
-     (Poolside Laguna S 2.1 free) en streaming, tokens relayés token par token.
+     (modèle configuré par OPENROUTER_MODEL) en streaming, token par token.
+   - POST /api/chat : même flux SSE, format de requête historique {message, sector}.
+   Ces endpoints exigent une session avec accès privé (comme la page /chat).
 
-2) Ancienne interface (exigence : conserver templates/ et static/ tels quels) :
-   - Jinja2Templates + StaticFiles monté sur /static.
-   - GET /, /chat, /observatory, /login, /register, /admin : rendu des templates
-     historiques via un `url_for` compatible Flask.
-   - POST /api/chat et /api/observatory-chat : endpoints de compatibilité pour
-     le JavaScript existant (le frontend n'est PAS modifié).
-     /api/chat bufferise le flux SSE puis renvoie le JSON attendu (Markdown -> HTML).
+2) Interface web (templates Jinja2 + /static) :
+   - GET /, /chat, /opportunities, /observatory, /login, /register, /admin :
+     rendu des templates via un `url_for` compatible Flask.
 
 3) Observatoire des Talents MRE (portage Flask -> FastAPI) :
    - GET /observatory : liste les profils réels en base (SQLAlchemy pur).
@@ -23,8 +21,9 @@ TROIS univers servis par le même backend :
      et revient sur le dashboard admin avec un message flash (succès/erreur).
    - Un cycle de sync tourne aussi automatiquement toutes les 24h en tâche de
      fond (thread daemon, ne bloque pas l'event loop).
-   - Authentification admin par session cookie signée (voir auth.py) :
-     POST /login, POST /register, GET /logout, routes /admin/* protégées.
+   - Authentification par session cookie signée (voir auth.py) :
+     POST /login, POST /register, GET /logout ; toutes les routes /admin/*
+     exigent le rôle « admin ».
    - Ajout manuel d'un profil (POST /admin/add) : auto-approuvé et publié
      immédiatement si le pays renseigné est à l'étranger (hors Maroc) ;
      mis en attente ("pending", inactif) si aucun pays ou pays = Maroc,
@@ -46,13 +45,14 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 
 import httpx
 import numpy as np
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -162,6 +162,21 @@ def _get_flashed_messages(context, with_categories=False):
 
 templates.env.globals["get_flashed_messages"] = _get_flashed_messages
 
+
+def _safe_url(value: str | None) -> str:
+    """Filtre Jinja : ne laisse passer que les URLs http(s) absolues.
+
+    Les URLs de profils/opportunités proviennent en partie du web ou d'un LLM :
+    un `javascript:` ou `data:` dans un href serait exécutable au clic."""
+    url = (value or "").strip()
+    if not url:
+        return ""
+    parts = urlsplit(url)
+    return url if parts.scheme in {"http", "https"} and parts.netloc else ""
+
+
+templates.env.filters["safe_url"] = _safe_url
+
 # ----- Secteurs RAG immobilier (page d'accueil / chat) -----
 SECTOR_LABELS = {
     "real_estate": "Immobilier",
@@ -205,39 +220,6 @@ OBSERVATORY_DOMAIN_LABELS = {
 }
 
 
-class PostView:
-    """Objet compatible avec l'ancien modèle SQLAlchemy `Post` pour les templates
-    (utilisé uniquement là où aucune donnée réelle n'existe encore, ex: page d'accueil)."""
-
-    def __init__(
-        self,
-        title: str,
-        country: str | None = None,
-        sector: str = "real_estate",
-        years_experience: int | None = None,
-        tags: list[str] | None = None,
-        description: str = "",
-    ) -> None:
-        self.id = 0
-        self.title = title
-        self.country = country
-        self.sector = sector
-        self.years_experience = years_experience
-        self.tags = tags or []
-        self.description = description
-        self.is_active = True
-        self.created_at = datetime.utcnow()
-
-    def initials(self) -> str:
-        return "".join(word[0] for word in self.title.split()[:2]).upper()
-
-    def sector_label(self) -> str:
-        return SECTOR_LABELS.get(self.sector, self.sector)
-
-    def tags_list(self) -> list[str]:
-        return self.tags
-
-
 # ---------------------------------------------------------------------------
 # Prompt système (Markdown pur, citations obligatoires)
 # ---------------------------------------------------------------------------
@@ -266,6 +248,9 @@ SSE_HEADERS = {
 }
 
 
+_DEFAULT_SECRET_KEY = "dev_secret_key_change_in_production"
+
+
 def sse_event(payload: dict) -> str:
     """Sérialise un événement SSE au format standard `data: <json>\\n\\n`."""
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
@@ -280,6 +265,12 @@ async def lifespan(app: FastAPI):
     la synchronisation se déclenche uniquement via le bouton "Lancer la sync"
     du dashboard admin (POST /admin/talents/sync), qui n'est pas concerné par
     ce réglage."""
+    if settings.SECRET_KEY == _DEFAULT_SECRET_KEY:
+        logger.warning(
+            "SECRET_KEY par défaut utilisée : les cookies de session sont falsifiables. "
+            "Définissez une valeur aléatoire (ex. `python -c \"import secrets; print(secrets.token_hex(32))\"`)."
+        )
+
     # ----- Observatoire : DB + scheduler -----
     init_db()
     if settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD:
@@ -444,12 +435,43 @@ def _require_private_access(request: Request, current_user: User | None) -> Redi
     return None
 
 
+def _is_admin(user: User | None) -> bool:
+    return user is not None and user.role == "admin"
+
+
+def _require_admin(request: Request, current_user: User | None) -> RedirectResponse | None:
+    """Garde des routes /admin/* : seul un compte de rôle « admin » passe."""
+    if _is_admin(current_user):
+        return None
+    flash(request, "Accès admin requis.", "error")
+    return RedirectResponse(url="/login", status_code=303)
+
+
+def _require_api_access(current_user: User | None) -> None:
+    """Garde des endpoints JSON/SSE consommés par les pages privées.
+
+    Sans elle, n'importe quel client anonyme pourrait consommer le quota LLM
+    (OpenRouter) et interroger l'Observatoire, alors que les pages /chat et
+    /observatory sont réservées aux comptes validés."""
+    if current_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
+    if not user_has_private_access(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=user_has_private_access_as_message(current_user) or "Accès non autorisé.",
+        )
+
+
 # ---------------------------------------------------------------------------
-# API moderne — streaming SSE (RAG juridique, inchangé)
+# API de chat — streaming SSE (RAG)
 # ---------------------------------------------------------------------------
 @app.post("/api/v1/chat/real-estate")
-async def chat_real_estate(payload: ChatRequest) -> StreamingResponse:
+async def chat_real_estate(
+    payload: ChatRequest,
+    current_user: User | None = Depends(get_current_user),
+) -> StreamingResponse:
     """Chat sectoriel MRE — réponse streaming SSE (Markdown pur)."""
+    _require_api_access(current_user)
     session_id = uuid.uuid4().hex[:12]
     logger.info("Session %s : %s", session_id, payload.query[:120].replace("\n", " "))
 
@@ -466,7 +488,8 @@ async def chat_real_estate(payload: ChatRequest) -> StreamingResponse:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Secteur non pris en charge.",
         )
-    prompt, sources = _build_rag_prompt(payload.query, sector=rag_sector)
+    # Embedding + recherche ChromaDB : calcul CPU bloquant, hors de la boucle async.
+    prompt, sources = await run_in_threadpool(_build_rag_prompt, payload.query, rag_sector)
 
     user_content = payload.query
     if payload.country:
@@ -496,10 +519,13 @@ class LegacyObservatoryRequest(BaseModel):
 
 
 @app.post("/api/chat")
-async def legacy_chat(payload: LegacyChatRequest) -> StreamingResponse:
-    """Point d'entrée historique (chat.html) : renvoie le flux SSE BRUT,
-    sans aucune bufferisation ni conversion JSON — le JavaScript du frontend
-    a été adapté pour lire le ReadableStream token par token."""
+async def legacy_chat(
+    payload: LegacyChatRequest,
+    current_user: User | None = Depends(get_current_user),
+) -> StreamingResponse:
+    """Point d'entrée historique : même flux SSE que /api/v1/chat/real-estate,
+    avec le format de requête {message, sector}."""
+    _require_api_access(current_user)
     session_id = uuid.uuid4().hex[:12]
     logger.info("Session %s : %s", session_id, payload.message[:120].replace("\n", " "))
 
@@ -509,7 +535,9 @@ async def legacy_chat(payload: LegacyChatRequest) -> StreamingResponse:
             detail="OPENROUTER_API_KEY non configurée dans le fichier .env",
         )
 
-    prompt, sources = _build_rag_prompt(payload.message, sector=_SECTOR_CODE_TO_FOLDER.get(payload.sector))
+    prompt, sources = await run_in_threadpool(
+        _build_rag_prompt, payload.message, _SECTOR_CODE_TO_FOLDER.get(payload.sector or "")
+    )
 
     return StreamingResponse(
         _stream_llm(prompt=prompt, user_content=payload.message, session_id=session_id, sources=sources),
@@ -713,10 +741,11 @@ def _list_observatory_options(db: Session) -> dict:
 async def legacy_observatory_chat(
     payload: LegacyObservatoryRequest,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
 ) -> JSONResponse:
-    """Chat de recherche de profils : un agent LangChain tool-calling (OpenRouter)
-    interroge la base de l'Observatoire (scoring hybride mots-clés + sémantique)
-    et sélectionne les meilleurs matchs."""
+    """Chat de recherche de profils : l'agent interroge la base de l'Observatoire
+    (scoring hybride mots-clés + sémantique) et sélectionne les meilleurs matchs."""
+    _require_api_access(current_user)
 
     def _search(query=None, keywords=None, sector=None, country=None, min_years_experience=None):
         return _search_observatory_profiles(
@@ -733,7 +762,8 @@ async def legacy_observatory_chat(
             list_options_fn=_list_options,
             raw_query=payload.message,
         )
-        result = executor.invoke({"input": payload.message})
+        # Embeddings + appels LLM synchrones : exécutés hors de la boucle async.
+        result = await run_in_threadpool(executor.invoke, {"input": payload.message})
         response_text = result.get("output", "") if isinstance(result, dict) else str(result)
     except Exception:
         logger.exception("Erreur durant l'exécution de l'agent Observatoire")
@@ -763,15 +793,16 @@ async def sync_talents_admin(
     """Déclenche une synchronisation puis revient sur le dashboard admin.
     La route ne renvoie pas un JSON brut car l'action est déclenchée depuis
     l'interface admin, qui doit rester sur la page dashboard après exécution."""
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
     try:
-        count = sync_talents_dynamic(db)
+        # Cycle long (web + LLM) : exécuté hors de la boucle async.
+        count = await run_in_threadpool(sync_talents_dynamic, db)
         flash(request, f"Synchronisation terminée : {count} nouveau(x) profil(s) ajouté(s).", "success")
     except Exception:
         logger.exception("Erreur durant le sync manuel des talents")
         flash(request, "Erreur pendant la synchronisation des talents.", "error")
-        return RedirectResponse(url="/admin", status_code=303)
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -781,10 +812,12 @@ async def ingest_investment_admin(
     current_user: User | None = Depends(get_current_user),
 ):
     """Ingère les documents d'investissement depuis le dashboard admin."""
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
     try:
-        files, chunks = ingest_path(
+        files, chunks = await run_in_threadpool(
+            ingest_path,
             Path("data/investissement"),
             persist_dir=settings.CHROMA_PERSIST_DIR,
             collection_name=settings.CHROMA_COLLECTION,
@@ -817,7 +850,8 @@ async def home(
         .all()
     )
     try:
-        opportunities = get_rag_opportunities(settings, limit=8)
+        # Lecture ChromaDB + validation LLM éventuelle : hors de la boucle async.
+        opportunities = await run_in_threadpool(get_rag_opportunities, settings, 8)
     except Exception:
         logger.exception("Impossible de charger les opportunités RAG pour l'accueil")
         opportunities = []
@@ -854,7 +888,7 @@ async def opportunities_page(
     if blocked:
         return blocked
     try:
-        opportunities = get_rag_opportunities(settings, limit=100)
+        opportunities = await run_in_threadpool(get_rag_opportunities, settings, 100)
     except Exception:
         logger.exception("Impossible de charger les opportunités d'investissement")
         opportunities = []
@@ -899,16 +933,15 @@ async def observatory(
 # ----- Authentification admin -----
 
 @app.get("/login")
-async def login_page(request: Request):
-    user_id = request.session.get("user_id")
-    if user_id:
-        db = next(get_db())
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            if user.role == "admin":
-                return RedirectResponse(url="/admin", status_code=303)
-            if user_has_private_access(user):
-                return RedirectResponse(url="/opportunities", status_code=303)
+async def login_page(
+    request: Request,
+    current_user: User | None = Depends(get_current_user),
+):
+    if current_user:
+        if current_user.role == "admin":
+            return RedirectResponse(url="/admin", status_code=303)
+        if user_has_private_access(current_user):
+            return RedirectResponse(url="/opportunities", status_code=303)
     return templates.TemplateResponse(request=request, name="login.html", context={})
 
 
@@ -931,8 +964,9 @@ async def login_submit(
         flash(request, "Votre accès n'est plus autorisé. Contactez l'administration.", "error")
         return RedirectResponse(url="/login", status_code=303)
 
+    request.session.clear()  # repart d'une session propre à chaque connexion
     request.session["user_id"] = user.id
-    flash(request, "Connexion reussie.", "success")
+    flash(request, "Connexion réussie.", "success")
     if user.role == "admin":
         return RedirectResponse(url="/admin", status_code=303)
     return RedirectResponse(url="/opportunities", status_code=303)
@@ -956,12 +990,15 @@ async def register_submit(
     if not name_clean:
         flash(request, "Le nom complet est obligatoire.", "error")
         return RedirectResponse(url="/register", status_code=303)
-    if len(password) < 6:
-        flash(request, "Le mot de passe doit contenir au moins 6 caracteres.", "error")
+    if "@" not in email_clean or len(email_clean) > 150:
+        flash(request, "Adresse email invalide.", "error")
+        return RedirectResponse(url="/register", status_code=303)
+    if len(password) < 8:
+        flash(request, "Le mot de passe doit contenir au moins 8 caractères.", "error")
         return RedirectResponse(url="/register", status_code=303)
 
     if db.query(User).filter(User.email == email_clean).first():
-        flash(request, "Un compte existe deja avec cet email.", "error")
+        flash(request, "Un compte existe déjà avec cet email.", "error")
         return RedirectResponse(url="/register", status_code=303)
 
     user = User(
@@ -980,8 +1017,8 @@ async def register_submit(
 
 @app.get("/logout")
 async def logout(request: Request):
-    request.session.pop("user_id", None)
-    flash(request, "Deconnecte avec succes.", "success")
+    request.session.clear()
+    flash(request, "Déconnexion réussie.", "success")
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -993,9 +1030,9 @@ async def admin_page(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user or current_user.role != "admin":
-        flash(request, "Accès admin requis.", "error")
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
 
     posts = db.query(Post).order_by(Post.created_at.desc()).all()
     users = db.query(User).order_by(User.created_at.desc()).all()
@@ -1033,9 +1070,9 @@ async def admin_access_requests_page(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user or current_user.role != "admin":
-        flash(request, "Accès admin requis.", "error")
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
 
     users = db.query(User).filter(User.role == "user").order_by(User.created_at.desc()).all()
     users.sort(key=lambda account: account.status != "pending")
@@ -1055,9 +1092,9 @@ async def update_user_status(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user or current_user.role != "admin":
-        flash(request, "Accès admin requis.", "error")
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
 
     valid_statuses = {"pending", "active", "free", "blocked", "expired", "cancelled"}
     if status not in valid_statuses:
@@ -1067,6 +1104,10 @@ async def update_user_status(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         flash(request, "Compte introuvable.", "error")
+        return RedirectResponse(url="/admin/access-requests", status_code=303)
+    if user.role == "admin":
+        # Évite qu'un admin se bloque lui-même (ou un autre admin) par erreur.
+        flash(request, "Le statut d'un compte administrateur ne peut pas être modifié ici.", "error")
         return RedirectResponse(url="/admin/access-requests", status_code=303)
 
     user.status = status
@@ -1087,8 +1128,9 @@ async def add_post(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
 
     if not title.strip() or sector not in OBSERVATORY_DOMAIN_LABELS:
         flash(request, "Nom et domaine sont obligatoires.", "error")
@@ -1112,9 +1154,9 @@ async def add_post(
     db.commit()
 
     if is_foreign:
-        flash(request, "Profil talent publie.", "success")
+        flash(request, "Profil talent publié.", "success")
     else:
-        flash(request, "Profil enregistre, en attente de revue (activez-le manuellement).", "success")
+        flash(request, "Profil enregistré, en attente de revue (activez-le manuellement).", "success")
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -1125,8 +1167,9 @@ async def toggle_post(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
     post = db.get(Post, post_id)
     if post:
         if post.review_status == "approved":
@@ -1136,7 +1179,7 @@ async def toggle_post(
             post.review_status = "approved"
             post.is_active = True
         db.commit()
-        flash(request, "Statut mis a jour.", "success")
+        flash(request, "Statut mis à jour.", "success")
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -1147,13 +1190,14 @@ async def delete_post(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ):
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=303)
+    blocked = _require_admin(request, current_user)
+    if blocked:
+        return blocked
     post = db.get(Post, post_id)
     if post:
         db.delete(post)
         db.commit()
-        flash(request, "Annonce supprimee.", "success")
+        flash(request, "Profil supprimé.", "success")
     return RedirectResponse(url="/admin", status_code=303)
 
 

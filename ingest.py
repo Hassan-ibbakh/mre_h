@@ -42,15 +42,19 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from config import resolve_device
+from config import get_settings, resolve_device
 
 # ---------------------------------------------------------------------------
 # Constantes par défaut (surchargeables en ligne de commande)
 # ---------------------------------------------------------------------------
+# Les valeurs par défaut viennent de config.py / .env : l'ingestion DOIT utiliser
+# le même modèle d'embedding que l'API, sinon les dimensions des vecteurs
+# divergent (ex. 384 vs 1024) et ChromaDB refuse l'insertion ou la requête.
+_SETTINGS = get_settings()
 DEFAULT_DATA_DIR = Path("data")
-DEFAULT_PERSIST_DIR = "chroma_db"
-DEFAULT_COLLECTION = "immobilier_mre"
-DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+DEFAULT_PERSIST_DIR = _SETTINGS.CHROMA_PERSIST_DIR
+DEFAULT_COLLECTION = _SETTINGS.CHROMA_COLLECTION
+DEFAULT_EMBEDDING_MODEL = _SETTINGS.EMBEDDING_MODEL
 
 CHUNK_SIZE = 3000       # LLM à très grand contexte : gros blocs cohérents
 CHUNK_OVERLAP = 300     # chevauchement pour ne pas couper une disposition en deux
@@ -219,13 +223,19 @@ def _sector_for_path(path: Path, data_root: Path) -> str:
 
     data/immobilier/x.pdf -> "immobilier" ; data/finance/x.md -> "finance" ;
     un fichier à la racine de `data/` (ex. loi_immo.pdf) -> SECTOR_LABEL (immobilier).
+
+    Le dossier `data/` du projet est prioritaire sur `data_root` : on peut ainsi
+    passer plusieurs chemins de secteurs différents dans une même commande
+    (ex. `python ingest.py data/immobilier/loi.pdf data/finance`) sans que le
+    premier chemin n'impose son secteur aux autres.
     """
-    try:
-        rel = path.resolve().relative_to(data_root.resolve())
-    except ValueError:
-        return SECTOR_LABEL
-    if len(rel.parts) >= 2:
-        return rel.parts[0]
+    resolved = path.resolve()
+    for root in (DEFAULT_DATA_DIR.resolve(), data_root.resolve()):
+        try:
+            rel = resolved.relative_to(root)
+        except ValueError:
+            continue
+        return rel.parts[0] if len(rel.parts) >= 2 else SECTOR_LABEL
     return SECTOR_LABEL
 
 

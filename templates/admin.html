@@ -485,8 +485,8 @@ td{line-height:1.45;}
                       {% else %}
                         <span class="origin-pill manual" title="Ajouté manuellement par un administrateur">✍️ Manuel</span>
                       {% endif %}
-                      {% if post.source_url %}
-                        <a href="{{ post.source_url }}" target="_blank" rel="noopener" class="source-link" title="Voir la source">↗ source</a>
+                      {% if post.source_url | safe_url %}
+                        <a href="{{ post.source_url | safe_url }}" target="_blank" rel="noopener" class="source-link" title="Voir la source">↗ source</a>
                       {% endif %}
                     </div>
                   </td>

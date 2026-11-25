@@ -14,7 +14,7 @@ Ce module expose :
 Pourquoi ORCID reste separe de l'agent : ORCID fournit deja des donnees
 structurees (pays de residence lu directement dans l'API) -- le filtrage
 est deterministe, sans avoir besoin qu'un LLM raisonne dessus. L'integrer
-comme outil de l'agent ajouterait du cout Groq (tours de raisonnement
+comme outil de l'agent ajouterait du cout LLM (tours de raisonnement
 supplementaires) sans aucun benefice de precision.
 
 L'import de `talent_scout_agent` est fait a l'INTERIEUR de
